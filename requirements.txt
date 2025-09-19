@@ -1,0 +1,38 @@
+############################
+# Core LLM/Chains (current)
+############################
+langchain>=0.2.16
+langchain-openai>=0.2.0
+langchain-text-splitters>=0.2.2
+langchain-community>=0.2.16
+
+############################
+# Vector stores / RAG (planned)
+############################
+faiss-cpu>=1.8.0.post1
+tiktoken>=0.7.0
+numpy>=1.26
+
+############################
+# Multi-agent workflows (planned)
+############################
+langgraph>=0.2.0
+
+############################
+# Web API for /trace (planned)
+############################
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-dotenv>=1.0.1
+
+############################
+# Docs site (planned)
+############################
+mkdocs-material>=9.5.0
+mkdocs-mermaid2-plugin>=0.6.0
+
+############################
+# Type/validation helpers (indirect but useful)
+############################
+pydantic>=2.7.0
+typing-extensions>=4.10.0

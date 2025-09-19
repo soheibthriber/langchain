@@ -1,0 +1,6 @@
+flowchart LR
+  prompt[PromptTemplate]
+  llm[MockLLM:mock-llm]
+  parser[StrOutputParser]
+  {'nodeId': 'prompt'} --> {'nodeId': 'llm'}
+  {'nodeId': 'llm'} --> {'nodeId': 'parser'}

@@ -1,0 +1,148 @@
+{
+  "metadata": {
+    "version": "1.1",
+    "run_id": "473762f1-987e-4b41-becf-69e5a6b51ef6",
+    "created_at": "2025-09-19T09:38:32.357262Z",
+    "lesson_id": "01_hello_chain",
+    "tags": []
+  },
+  "nodes": [
+    {
+      "id": "prompt",
+      "label": "PromptTemplate",
+      "type": "prompt",
+      "subType": null,
+      "tags": [
+        "core"
+      ],
+      "data": {
+        "template": "Summarize in one sentence: {text}"
+      }
+    },
+    {
+      "id": "llm",
+      "label": "MockLLM:mock-llm",
+      "type": "llm",
+      "subType": null,
+      "tags": [
+        "core"
+      ],
+      "data": {
+        "model": "mock-llm"
+      }
+    },
+    {
+      "id": "parser",
+      "label": "StrOutputParser",
+      "type": "parser",
+      "subType": null,
+      "tags": [
+        "core"
+      ],
+      "data": {}
+    }
+  ],
+  "ports": [],
+  "edges": [
+    {
+      "id": "prompt->llm",
+      "source": {
+        "nodeId": "prompt"
+      },
+      "target": {
+        "nodeId": "llm"
+      },
+      "label": null
+    },
+    {
+      "id": "llm->parser",
+      "source": {
+        "nodeId": "llm"
+      },
+      "target": {
+        "nodeId": "parser"
+      },
+      "label": null
+    }
+  ],
+  "groups": [
+    {
+      "id": "hello_chain",
+      "label": "Hello Chain",
+      "nodeIds": [
+        "prompt",
+        "llm",
+        "parser"
+      ],
+      "type": "chain",
+      "collapsed": false
+    }
+  ],
+  "run": {
+    "latency_ms": 0,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "cost": null,
+    "errors": null
+  },
+  "events": [
+    {
+      "ts_ms": 0,
+      "kind": "invoke_start",
+      "nodeId": "prompt",
+      "edgeId": null,
+      "payload": {
+        "input": {
+          "text": "LangChain helps build LLM apps"
+        }
+      }
+    },
+    {
+      "ts_ms": 0,
+      "kind": "invoke_start",
+      "nodeId": "llm",
+      "edgeId": null,
+      "payload": {
+        "prompt": "Summarize in one sentence: LangChain helps build LLM apps"
+      }
+    },
+    {
+      "ts_ms": 0,
+      "kind": "invoke_end",
+      "nodeId": "llm",
+      "edgeId": null,
+      "payload": {
+        "output": "[MOCK:mock-llm] summary: Summarize in one sentence: LangChain helps build LLM apps..."
+      }
+    },
+    {
+      "ts_ms": 0,
+      "kind": "invoke_start",
+      "nodeId": "parser",
+      "edgeId": null,
+      "payload": {}
+    },
+    {
+      "ts_ms": 0,
+      "kind": "invoke_end",
+      "nodeId": "parser",
+      "edgeId": null,
+      "payload": {
+        "output": "[MOCK:mock-llm] summary: Summarize in one sentence: LangChain helps build LLM apps..."
+      }
+    }
+  ],
+  "artifacts": {
+    "prompt": {
+      "prompt": "Summarize in one sentence: {text}",
+      "resolved_prompt": "Summarize in one sentence: LangChain helps build LLM apps"
+    },
+    "llm": {
+      "output": "[MOCK:mock-llm] summary: Summarize in one sentence: LangChain helps build LLM apps..."
+    },
+    "parser": {
+      "output": "[MOCK:mock-llm] summary: Summarize in one sentence: LangChain helps build LLM apps..."
+    }
+  },
+  "styles": {}
+}
