@@ -1,101 +1,120 @@
-# LangChain Course + Visualizer (MVP)
+# LangChain Course + Visualizer
 
-A pragmatic, hands-on mini-curriculum. This MVP ships a tiny tracer that emits GraphJSON and converts it to Mermaid for quick visual graphs. Lesson 1 runs with a mock LLM by default, so you can try it without any keys.
+A pragmatic, hands-on course with professional React Flow visualization of LangChain flows. This implementation uses GraphJSON v1.1 schema with events, artifacts, and interactive playback.
+
+## Features
+
+- **GraphJSON v1.1**: Structured format with metadata, events, artifacts, groups, ports
+- **Professional Viewer**: React Flow with semantic node types, sidebar inspection, playback controls
+- **Mock-friendly**: Lessons run without API keys; viewer loads local JSON or API data
+- **Interactive**: Hover metrics, timeline playback, node details, prompt inspection
 
 ## Quickstart
 
-Requirements:
-- Python 3.10+ (use `python3` on Linux)
-- Optional: `langchain-openai` if you want real OpenAI calls
+### 1) Setup Environment
 
-### 1) Create and activate a virtualenv (recommended)
-
-```
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
-```
-
-### 2) Install dependencies
-
-```
 pip install -U pip
 pip install -r requirements.txt
 ```
 
-### 3) Run Lesson 1 (mock LLM by default)
+### 2) Run Lesson 1 (generates GraphJSON v1.1)
 
-```
+```bash
 python3 lessons/01_hello_chain/code.py
 ```
 
-Artifacts created:
-- `lessons/01_hello_chain/graph.json` (GraphJSON)
-- `lessons/01_hello_chain/graph.mmd` (Mermaid)
+Outputs:
+- `lessons/01_hello_chain/graph.json` (GraphJSON v1.1 with events/artifacts)
+- `lessons/01_hello_chain/graph.mmd` (Mermaid export)
 
-### 4) Run with OpenAI (optional)
+### 3) Start API Server
 
-Export your key and flip the switch:
-
+```bash
+python3 -m uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
 ```
+
+API endpoints:
+- `GET /api/lessons` - List available lessons
+- `GET /api/runs/01_hello_chain/latest` - Get latest run for lesson
+- `GET /api/mermaid/01_hello_chain` - Get Mermaid diagram
+
+### 4) Start React Flow Viewer (optional)
+
+```bash
+cd viewer
+npm install
+npm run dev
+```
+
+Open http://localhost:3000
+
+Features:
+- Load GraphJSON via file upload or API
+- Interactive nodes with hover metrics
+- Sidebar with Overview, Prompt, Output, Events tabs
+- Playback controls for event timeline
+- Professional semantic node types (prompt, llm, parser)
+
+### 5) Quick Mermaid Viewer (alternative)
+
+```bash
+python3 -m uvicorn viz.serve_mermaid:app --reload --port 8080
+```
+
+Open http://127.0.0.1:8080
+
+### 6) OpenAI Demo (optional)
+
+```bash
 export OPENAI_API_KEY=sk-...
 export USE_OPENAI=1
 python3 lessons/01_hello_chain/code.py
 ```
 
-Optionally pick a model:
-
-```
-export OPENAI_MODEL=gpt-4o-mini
-```
-
-> If import fails, the script automatically falls back to the mock LLM.
-
-## Structure (current)
+## Structure
 
 ```
 langchain/
   lessons/
     01_hello_chain/
-      code.py          # runnable example, outputs GraphJSON + Mermaid
+      code.py          # GraphJSON v1.1 with events/artifacts
+      graph.json       # Generated output
+      graph.mmd        # Mermaid export
+  viewer/              # React Flow app
+    src/
+      components/      # NodeTypes, Sidebar, PlaybackControls
+      types/           # GraphJSON v1.1 schema
+  api/
+    main.py           # FastAPI with /runs endpoints
   viz/
-    tracer.py          # minimal GraphJSON tracer
-    mermaid.py         # GraphJSON -> Mermaid converter
-  requirements.txt     # deps for current + planned lessons
-  README.md
+    tracer.py         # GraphJSON v1.1 tracer
+    mermaid.py        # Export converter
+    serve_mermaid.py  # Simple viewer
+  requirements.txt    # Full dependencies
 ```
 
-## Optional: Docs site (MkDocs)
+## GraphJSON v1.1 Schema
 
-After installing requirements, you can start a local docs site later:
+Core fields:
+- `metadata`: version, run_id, created_at, lesson_id, tags
+- `nodes`: id, label, type, subType, tags, data
+- `edges`: source/target with optional ports, labels
+- `events`: timestamped with kind (invoke_start/end, tool_call, etc.)
+- `artifacts`: per-node prompt/resolved_prompt/output/tool_io/docs
+- `groups`: collapsible node collections (chain/agent/retriever)
 
-```
-# Example (to be scaffolded in a next step)
-# mkdocs serve
-```
+## Course Vision
 
-## Optional: API server (FastAPI)
+Each lesson ships with:
+- **Visual**: Semantic nodes, ports, groups; clear flow representation
+- **Interactive**: Hover metrics, sidebar inspection, timeline playback
+- **Artifacts**: Prompts, outputs, tool I/O, retriever hits with expandable details
 
-A tiny `/trace` endpoint will be added soon. Once available:
-
-```
-# Example (to be added)
-# uvicorn app:app --reload
-```
-
-## Visualize the graph
-
-Serve the Mermaid diagram locally (after running Lesson 1):
-
-```
-source .venv/bin/activate
-python3 -m uvicorn viz.serve_mermaid:app --reload
-```
-
-Open http://127.0.0.1:8000 in your browser.
-
-## Next Steps (planned)
-
-- Lesson 3 (RAG mini) with the same tracer, emitting a larger graph.
-- Tiny FastAPI endpoint `/trace` to serve GraphJSON for a React Flow app.
-- MkDocs site scaffolding with Mermaid enabled for lesson docs.
-- React Flow viewer (Phase 2) with node types and a side panel.
+Planned:
+- Lesson 3: RAG Mini (splitter → embeddings → vectorstore → retriever → prompt → llm)
+- Tools & Agent visualization with tool call/observation edges
+- Multi-run comparison and diff mode
+- LangGraph state nodes with conditional edges
