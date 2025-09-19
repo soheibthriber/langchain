@@ -10,12 +10,14 @@ import ReactFlow, {
   Edge,
   NodeTypes,
   OnSelectionChangeParams,
+  Handle,
+  Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 // Simple node component
 const CustomNode: React.FC<any> = ({ data }) => {
-  const colors = {
+  const colors: {[key: string]: string} = {
     prompt: 'bg-blue-100 border-blue-300',
     llm: 'bg-green-100 border-green-300', 
     parser: 'bg-purple-100 border-purple-300'
@@ -24,8 +26,10 @@ const CustomNode: React.FC<any> = ({ data }) => {
   const color = colors[data.type] || 'bg-gray-100 border-gray-300';
   
   return (
-    <div className={`${color} border-2 rounded-lg p-3 min-w-32`}>
+    <div className={`${color} border-2 rounded-lg p-3 min-w-32 relative`}>
+      <Handle type="target" position={Position.Left} />
       <div className="font-medium text-sm">{data.label}</div>
+      <Handle type="source" position={Position.Right} />
     </div>
   );
 };
@@ -117,7 +121,7 @@ const App: React.FC = () => {
         >
           <Controls />
           <MiniMap />
-          <Background variant="dots" gap={12} size={1} />
+          <Background gap={12} size={1} />
           
           <Panel position="top-left">
             <div className="bg-white p-4 rounded-lg shadow-lg border space-y-3">
