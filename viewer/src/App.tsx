@@ -18,6 +18,9 @@ import { specializedNodeTypes } from './components/SpecializedNodes';
 const nodeTypes: NodeTypes = specializedNodeTypes as unknown as NodeTypes;
 
 const App: React.FC = () => {
+  // Base URL for API in production; empty means static mode (GitHub Pages)
+  const API_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL || '';
+  const hasApi = typeof API_BASE === 'string' && API_BASE.length > 0;
   // Start empty; populate from API (Load Sample)
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -29,7 +32,9 @@ const App: React.FC = () => {
 
   const loadSampleData = useCallback(async () => {
     try {
-      const response = await fetch('/api/runs/01_hello_chain/latest');
+      // If API is configured, get latest via API; otherwise fall back to static graph.json
+      const url = hasApi ? `${API_BASE}/api/runs/01_hello_chain/latest` : '/graph.json';
+      const response = await fetch(url);
       if (response.ok) {
   const data = await response.json();
         
@@ -167,13 +172,18 @@ const App: React.FC = () => {
         console.log('Loaded GraphJSON data:', data);
       }
     } catch (error) {
-      console.warn('API not available:', error);
+      console.warn('Load sample failed:', error);
     }
-  }, [setNodes, setEdges]);
+  }, [setNodes, setEdges, API_BASE, hasApi]);
 
   const runLesson = useCallback(async () => {
     try {
-      const response = await fetch('/api/run/01_hello_chain', {
+      if (!hasApi) {
+        // Static mode: no API. Just load the sample graph from the static file.
+        await loadSampleData();
+        return;
+      }
+      const response = await fetch(`${API_BASE}/api/run/01_hello_chain`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: 'Explain how neural networks learn from data' }),
@@ -256,7 +266,7 @@ const App: React.FC = () => {
     } catch (e) {
       console.warn('Run lesson failed:', e);
     }
-  }, [setNodes, setEdges]);
+  }, [setNodes, setEdges, API_BASE, hasApi, loadSampleData]);
 
   return (
     <div className="w-full h-screen flex">
