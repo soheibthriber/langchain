@@ -1,8 +1,8 @@
 {
   "metadata": {
     "version": "1.1",
-    "run_id": "473762f1-987e-4b41-becf-69e5a6b51ef6",
-    "created_at": "2025-09-19T09:38:32.357262Z",
+    "run_id": "e422c366-f008-4276-b63e-427ea4de45e6",
+    "created_at": "2025-09-20T11:15:36.043895Z",
     "lesson_id": "01_hello_chain",
     "tags": []
   },
@@ -10,10 +10,11 @@
     {
       "id": "prompt",
       "label": "PromptTemplate",
-      "type": "prompt",
+      "type": "promptTemplate",
       "subType": null,
       "tags": [
-        "core"
+        "core",
+        "input"
       ],
       "data": {
         "template": "Summarize in one sentence: {text}"
@@ -22,13 +23,16 @@
     {
       "id": "llm",
       "label": "MockLLM:mock-llm",
-      "type": "llm",
+      "type": "chatModel",
       "subType": null,
       "tags": [
-        "core"
+        "core",
+        "llm"
       ],
       "data": {
-        "model": "mock-llm"
+        "model": "mock-llm",
+        "temperature": 0.0,
+        "provider": "mock"
       }
     },
     {
@@ -37,32 +41,76 @@
       "type": "parser",
       "subType": null,
       "tags": [
-        "core"
+        "core",
+        "output"
       ],
-      "data": {}
+      "data": {
+        "parser_type": "string"
+      }
     }
   ],
-  "ports": [],
-  "edges": [
+  "ports": [
     {
-      "id": "prompt->llm",
-      "source": {
-        "nodeId": "prompt"
-      },
-      "target": {
-        "nodeId": "llm"
-      },
-      "label": null
+      "nodeId": "prompt",
+      "portId": "in",
+      "direction": "in",
+      "label": "input"
     },
     {
-      "id": "llm->parser",
+      "nodeId": "prompt",
+      "portId": "out",
+      "direction": "out",
+      "label": "formatted_prompt"
+    },
+    {
+      "nodeId": "llm",
+      "portId": "in",
+      "direction": "in",
+      "label": "prompt"
+    },
+    {
+      "nodeId": "llm",
+      "portId": "out",
+      "direction": "out",
+      "label": "completion"
+    },
+    {
+      "nodeId": "parser",
+      "portId": "in",
+      "direction": "in",
+      "label": "text"
+    },
+    {
+      "nodeId": "parser",
+      "portId": "out",
+      "direction": "out",
+      "label": "parsed_output"
+    }
+  ],
+  "edges": [
+    {
+      "id": "prompt:out->llm:in",
       "source": {
-        "nodeId": "llm"
+        "nodeId": "prompt",
+        "portId": "out"
       },
       "target": {
-        "nodeId": "parser"
+        "nodeId": "llm",
+        "portId": "in"
       },
-      "label": null
+      "label": "formatted prompt"
+    },
+    {
+      "id": "llm:out->parser:in",
+      "source": {
+        "nodeId": "llm",
+        "portId": "out"
+      },
+      "target": {
+        "nodeId": "parser",
+        "portId": "in"
+      },
+      "label": "raw completion"
     }
   ],
   "groups": [
@@ -93,17 +141,26 @@
       "edgeId": null,
       "payload": {
         "input": {
-          "text": "LangChain helps build LLM apps"
+          "text": "hi you mock"
         }
       }
     },
     {
       "ts_ms": 0,
+      "kind": "invoke_end",
+      "nodeId": "prompt",
+      "edgeId": null,
+      "payload": {
+        "formatted_prompt": "Summarize in one sentence: hi you mock"
+      }
+    },
+    {
+      "ts_ms": 0,
       "kind": "invoke_start",
       "nodeId": "llm",
       "edgeId": null,
       "payload": {
-        "prompt": "Summarize in one sentence: LangChain helps build LLM apps"
+        "prompt": "Summarize in one sentence: hi you mock"
       }
     },
     {
@@ -112,7 +169,7 @@
       "nodeId": "llm",
       "edgeId": null,
       "payload": {
-        "output": "[MOCK:mock-llm] summary: Summarize in one sentence: LangChain helps build LLM apps..."
+        "output": "[MOCK:mock-llm] summary: Summarize in one sentence: hi you mock..."
       }
     },
     {
@@ -120,7 +177,9 @@
       "kind": "invoke_start",
       "nodeId": "parser",
       "edgeId": null,
-      "payload": {}
+      "payload": {
+        "input": "[MOCK:mock-llm] summary: Summarize in one sentence: hi you mock..."
+      }
     },
     {
       "ts_ms": 0,
@@ -128,20 +187,30 @@
       "nodeId": "parser",
       "edgeId": null,
       "payload": {
-        "output": "[MOCK:mock-llm] summary: Summarize in one sentence: LangChain helps build LLM apps..."
+        "output": "[MOCK:mock-llm] summary: Summarize in one sentence: hi you mock..."
       }
     }
   ],
   "artifacts": {
     "prompt": {
       "prompt": "Summarize in one sentence: {text}",
-      "resolved_prompt": "Summarize in one sentence: LangChain helps build LLM apps"
+      "resolved_prompt": "Summarize in one sentence: hi you mock",
+      "input_variables": [
+        "text"
+      ]
     },
     "llm": {
-      "output": "[MOCK:mock-llm] summary: Summarize in one sentence: LangChain helps build LLM apps..."
+      "input": "Summarize in one sentence: hi you mock",
+      "output": "[MOCK:mock-llm] summary: Summarize in one sentence: hi you mock...",
+      "model_info": {
+        "name": "mock-llm",
+        "provider": "mock"
+      }
     },
     "parser": {
-      "output": "[MOCK:mock-llm] summary: Summarize in one sentence: LangChain helps build LLM apps..."
+      "input": "[MOCK:mock-llm] summary: Summarize in one sentence: hi you mock...",
+      "output": "[MOCK:mock-llm] summary: Summarize in one sentence: hi you mock...",
+      "parser_type": "string"
     }
   },
   "styles": {}

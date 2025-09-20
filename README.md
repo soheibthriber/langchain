@@ -118,3 +118,11 @@ Planned:
 - Tools & Agent visualization with tool call/observation edges
 - Multi-run comparison and diff mode
 - LangGraph state nodes with conditional edges
+
+## Course Plan Document
+
+For the full curriculum (modules, first 10 lessons, milestones, capstones, and optional MCP integration), see:
+
+- docs/COURSE_PLAN.md
+
+Use it as shared context for LLMs and collaborators to generate lesson code, visuals, and artifacts aligned with this repo.
