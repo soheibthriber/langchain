@@ -4,15 +4,9 @@ Lesson 1 — Hello, Chain (Prompt → LLM → Parser)
 This lesson demonstrates the fundamental LangChain pattern: PromptTemplate → ChatModel → StrOutputParser.
 It emits GraphJSON v1.1 and Mermaid for visual exploration in the course viewer.
 
-Two execution modes:
-- Default: MockLLM (no API keys required)
-- Real API: OpenAI ChatGPT (requires OPENAI_API_KEY and USE_OPENAI=1)
-
-Learning Objectives:
-- Understand the basic LangChain chain pattern
-- See how prompts are formatted and passed to LLMs
-- Learn GraphJSON v1.1 tracing and visualization
-- Compare mock vs real API behavior
+Execution modes (real only):
+- OpenAI: set USE_OPENAI=1 and OPENAI_API_KEY
+- Groq (default): set GROQ_API_KEY (uses e.g., llama3-8b-8192)
 
 CLI:
     python3 lessons/01_hello_chain/code.py --text "Your input here"
@@ -33,17 +27,9 @@ if str(ROOT) not in sys.path:
 
 from viz.tracer import GraphTracer
 from viz.mermaid import to_mermaid
+from dotenv import load_dotenv
+load_dotenv()
 
-
-@dataclass
-class MockLLM:
-    """A tiny stand-in for a chat model so the lesson runs anywhere."""
-
-    model: str = "mock-llm"
-    temperature: float = 0.0
-
-    def invoke(self, prompt: str) -> str:
-        return f"[MOCK:{self.model}] summary: {prompt[:60]}..."
 
 
 @dataclass
@@ -93,59 +79,106 @@ def run(text: Optional[str] = None) -> Dict[str, Any]:
     # Step 1: Create prompt template
     prompt = PromptTemplate.from_template("Summarize in one sentence: {text}")
 
-    # Step 2: Configure LLM (Mock vs Real API)
+    # Step 2: Configure LLM (Real providers only)
     use_openai = os.getenv("USE_OPENAI") == "1"
     openai_key = os.getenv("OPENAI_API_KEY")
-    
+    groq_key = os.getenv("GROQ_API_KEY")
+
+    llm_label = ""
+    provider = ""
+
     if use_openai and openai_key:
         try:
             from langchain_openai import ChatOpenAI  # type: ignore
             model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
             llm = ChatOpenAI(model=model_name, temperature=0)
-            llm_label = f"ChatOpenAI:{model_name}"
             print(f"🤖 Using OpenAI API with model: {model_name}")
-            
+
             def llm_invoke(s: str) -> str:
                 response = llm.invoke(s)
                 return response.content if hasattr(response, 'content') else str(response)
-                
-        except ImportError:
-            print("⚠️  langchain_openai not installed, falling back to MockLLM")
-            llm = MockLLM()
-            llm_label = f"MockLLM:{llm.model}"
-            llm_invoke = llm.invoke
+
+            llm_label = f"ChatOpenAI:{model_name}"
+            provider = "openai"
         except Exception as e:
-            print(f"⚠️  OpenAI setup failed ({e}), falling back to MockLLM")
-            llm = MockLLM()
-            llm_label = f"MockLLM:{llm.model}"
-            llm_invoke = llm.invoke
+            raise RuntimeError(f"OpenAI setup failed: {e}. Tip: check langchain-openai install and OPENAI_API_KEY.")
+    elif groq_key:
+        from groq import Groq  # type: ignore
+        client = Groq(api_key=groq_key)
+
+        # Decide model: use env override if set, else pick from available models
+        model_name = os.getenv("GROQ_MODEL")
+        if not model_name:
+            try:
+                models = client.models.list()
+                ids = []
+                if hasattr(models, "data"):
+                    ids = [getattr(m, "id", None) or (m.get("id") if isinstance(m, dict) else None) for m in models.data]
+                    ids = [i for i in ids if i]
+                # Preference order
+                prefs = [
+                    "llama-3.1-8b-instant",
+                    "llama-3.1-70b-versatile",
+                    "gemma2-9b-it",
+                    "mixtral-8x7b",
+                ]
+                chosen = None
+                for p in prefs:
+                    chosen = next((i for i in ids if p in i), None)
+                    if chosen:
+                        break
+                model_name = chosen or (ids[0] if ids else "")
+            except Exception:
+                model_name = "llama-3.1-8b-instant"  # best-effort default
+        if not model_name:
+            raise RuntimeError("Groq: no available models found. Set GROQ_MODEL env to a valid model.")
+
+        def llm_invoke(s: str) -> str:
+            resp = client.chat.completions.create(
+                model=model_name,
+                messages=[{"role": "user", "content": s}],
+                max_tokens=256,
+                temperature=0,
+            )
+            return resp.choices[0].message.content or ""
+
+        llm = type("_GroqLLM", (), {"model": model_name, "temperature": 0})()
+        llm_label = f"Groq:{model_name}"
+        provider = "groq"
+        print(f"⚡ Using Groq API with model: {model_name}")
     else:
-        llm = MockLLM()
-        llm_label = f"MockLLM:{llm.model}"
-        llm_invoke = llm.invoke
-        if use_openai:
-            print("⚠️  USE_OPENAI=1 but OPENAI_API_KEY not set, using MockLLM")
-        else:
-            print("🎭 Using MockLLM (set USE_OPENAI=1 and OPENAI_API_KEY for real API)")
+        raise RuntimeError("No real LLM configured. Set USE_OPENAI=1 with OPENAI_API_KEY or set GROQ_API_KEY. See lessons/00_setup_keys.")
 
     # Step 3: Create parser
     parser = StrOutputParser()
 
     # Step 4: Set up visual tracing
-    # Add nodes with viewer-compatible types
+    # Add nodes with viewer-compatible types and rich data
     tracer.node("prompt", "PromptTemplate", "promptTemplate",
-                data={"template": prompt.template}, tags=["core", "input"])
+                data={
+                    "template": prompt.template,
+                    "input_variables": ["text"],
+                    "template_format": "f-string",
+                    "description": "Formats user input into a summarization prompt"
+                }, 
+                tags=["core", "input"])
     
     tracer.node("llm", llm_label, "chatModel",
                 data={
-                    "model": getattr(llm, 'model', 'mock'),
+                    "model": getattr(llm, 'model', ''),
                     "temperature": getattr(llm, 'temperature', 0),
-                    "provider": "openai" if use_openai and openai_key else "mock"
+                    "provider": provider,
+                    "description": "Language model that generates text completions",
+                    "model_type": "chat"
                 }, 
                 tags=["core", "llm"])
     
     tracer.node("parser", "StrOutputParser", "parser", 
-                data={"parser_type": "string"}, 
+                data={
+                    "parser_type": "string",
+                    "output_format": "str",
+                    "description": "Ensures clean string output from LLM response"
+                }, 
                 tags=["core", "output"])
 
     # Add ports for explicit edge connections
@@ -175,7 +208,9 @@ def run(text: Optional[str] = None) -> Dict[str, Any]:
     tracer.artifact("prompt", 
                    prompt=prompt.template, 
                    resolved_prompt=formatted_prompt,
-                   input_variables=list(input_data.keys()))
+                   input_variables=list(input_data.keys()),
+                   input_data=input_data,
+                   user_input=input_data.get("text", ""))
     
     # Event: Start LLM invocation
     tracer.event("invoke_start", node_id="llm", payload={"prompt": formatted_prompt})
@@ -184,7 +219,13 @@ def run(text: Optional[str] = None) -> Dict[str, Any]:
     tracer.artifact("llm", 
                    input=formatted_prompt,
                    output=llm_output,
-                   model_info={"name": getattr(llm, 'model', 'mock'), "provider": "openai" if use_openai and openai_key else "mock"})
+                   model_info={
+                       "name": getattr(llm, 'model', ''), 
+                       "provider": provider,
+                       "temperature": getattr(llm, 'temperature', 0)
+                   },
+                   prompt_length=len(formatted_prompt),
+                   output_length=len(llm_output))
     
     # Event: Start parsing
     tracer.event("invoke_start", node_id="parser", payload={"input": llm_output})
@@ -193,7 +234,10 @@ def run(text: Optional[str] = None) -> Dict[str, Any]:
     tracer.artifact("parser", 
                    input=llm_output,
                    output=final_output,
-                   parser_type="string")
+                   parser_type="string",
+                   input_length=len(llm_output),
+                   output_length=len(final_output),
+                   processing_notes="Converted to clean string format")
     
     latency_ms = tracer.end()
 
@@ -232,8 +276,8 @@ Examples:
   python3 code.py --text "Explain machine learning"
   
 Real API usage:
-  export OPENAI_API_KEY=sk-...
-  export USE_OPENAI=1
+    export OPENAI_API_KEY=sk-...
+    export USE_OPENAI=1
   python3 code.py --text "Summarize quantum computing"
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter

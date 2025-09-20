@@ -7,7 +7,7 @@ This lesson introduces the fundamental LangChain pattern: **PromptTemplate → C
 **What you'll learn:**
 - Core LangChain components: PromptTemplate, ChatModel, OutputParser
 - How to trace and visualize LangChain flows with GraphJSON v1.1
-- Difference between mock and real API usage
+- Real API usage with Groq (default) or OpenAI
 - Reading visual flow diagrams in the course viewer
 
 ## Visual Flow Diagram
@@ -18,7 +18,7 @@ This lesson introduces the fundamental LangChain pattern: **PromptTemplate → C
 
 **Nodes:**
 - **PromptTemplate** (`promptTemplate`): Formats user input into a structured prompt
-- **ChatModel** (`chatModel`): Language model that generates responses (Mock or OpenAI)
+- **ChatModel** (`chatModel`): Language model that generates responses (Groq/OpenAI)
 - **StrOutputParser** (`parser`): Ensures output is clean string format
 
 **Edges:**
@@ -35,15 +35,14 @@ This lesson introduces the fundamental LangChain pattern: **PromptTemplate → C
 pip install -r requirements.txt
 ```
 
-### Option 1: Mock Mode (Default - No API Keys)
-
-The lesson runs by default with a MockLLM that simulates responses without requiring any API keys.
+### Option 1: Groq (recommended - free tier)
 
 ```bash
-python3 lessons/01_hello_chain/code.py
+export GROQ_API_KEY=... # from https://console.groq.com/keys
+python3 lessons/01_hello_chain/code.py --text "Explain quantum computing briefly"
 ```
 
-### Option 2: Real OpenAI API
+### Option 2: OpenAI
 
 To use a real OpenAI model:
 
@@ -66,10 +65,8 @@ python3 lessons/01_hello_chain/code.py --text "Explain quantum computing briefly
 ### Basic Usage
 
 ```bash
-# Default mock mode
-python3 lessons/01_hello_chain/code.py
-
-# Custom input text
+# Groq (default)
+export GROQ_API_KEY=...
 python3 lessons/01_hello_chain/code.py --text "Explain machine learning"
 ```
 
@@ -86,23 +83,12 @@ python3 lessons/01_hello_chain/code.py --text "Summarize the benefits of renewab
 
 ### Expected Output
 
-**Mock Mode:**
+**Groq example:**
 ```
-🎭 Using MockLLM (set USE_OPENAI=1 and OPENAI_API_KEY for real API)
+⚡ Using Groq API with model: llama3-8b-8192
 
-📝 Result: [MOCK:mock-llm] summary: Summarize in one sentence: LangChain helps build LLM...
-⏱️  Total latency: 15.2ms
-💾 Saved GraphJSON: /path/to/lessons/01_hello_chain/graph.json
-🎨 Saved Mermaid: /path/to/lessons/01_hello_chain/graph.mmd
-✅ Lesson complete! Check graph.json and graph.mmd files.
-```
-
-**Real API Mode:**
-```
-🤖 Using OpenAI API with model: gpt-4o-mini
-
-📝 Result: LangChain is a framework that simplifies building applications with large language models through modular, composable components.
-⏱️  Total latency: 1247.3ms
+📝 Result: ...
+⏱️  Total latency: ...
 💾 Saved GraphJSON: /path/to/lessons/01_hello_chain/graph.json
 🎨 Saved Mermaid: /path/to/lessons/01_hello_chain/graph.mmd
 ✅ Lesson complete! Check graph.json and graph.mmd files.
@@ -195,11 +181,7 @@ pip install langchain-openai
 
 ### Fallback Behavior
 
-The lesson automatically falls back to MockLLM if:
-- `USE_OPENAI` is not set to "1"
-- `OPENAI_API_KEY` is missing or invalid
-- Network connection fails
-- `langchain-openai` package is not installed
+No mock fallback. The lesson requires a real provider (Groq/OpenAI).
 
 ## Extension Ideas
 
