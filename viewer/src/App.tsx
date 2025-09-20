@@ -20,6 +20,7 @@ const nodeTypes: NodeTypes = specializedNodeTypes as unknown as NodeTypes;
 const App: React.FC = () => {
   // Base URL for API in production; empty means static mode (GitHub Pages)
   const API_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL || '';
+  const PUBLIC_BASE = (import.meta as any)?.env?.BASE_URL || '/';
   const hasApi = typeof API_BASE === 'string' && API_BASE.length > 0;
   // Start empty; populate from API (Load Sample)
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -33,7 +34,7 @@ const App: React.FC = () => {
   const loadSampleData = useCallback(async () => {
     try {
       // If API is configured, get latest via API; otherwise fall back to static graph.json
-      const url = hasApi ? `${API_BASE}/api/runs/01_hello_chain/latest` : '/graph.json';
+  const url = hasApi ? `${API_BASE}/api/runs/01_hello_chain/latest` : `${PUBLIC_BASE}graph.json`;
       const response = await fetch(url);
       if (response.ok) {
   const data = await response.json();
