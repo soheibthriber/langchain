@@ -26,6 +26,12 @@ uvicorn[standard]>=0.30.0
 python-dotenv>=1.0.1
 
 ############################
+# Lesson 0 optional clients
+############################
+groq>=0.11.0
+pinecone-client>=5.0.0
+
+############################
 # Docs site (planned)
 ############################
 mkdocs-material>=9.5.0
