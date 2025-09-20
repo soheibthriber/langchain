@@ -4,6 +4,7 @@ import { Handle, Position, NodeProps } from 'reactflow';
 interface NodeData {
   label: string;
   description?: string;
+  artifacts?: any; // execution data passed from API
   [key: string]: any;
 }
 
@@ -49,6 +50,10 @@ export const PromptTemplateNode: React.FC<NodeProps<NodeData>> = ({ data, isConn
     marginBottom: '8px',
   };
 
+  const template = data.artifacts?.prompt || data.artifacts?.template;
+  const resolved = data.artifacts?.resolved_prompt;
+  const inputVars = data.artifacts?.input_variables as string[] | undefined;
+
   return (
     <div style={getBaseNodeStyle('#d97706')}>
       <div style={getAccentBarStyle('linear-gradient(90deg, #d97706 0%, #f59e0b 100%)')}></div>
@@ -68,6 +73,25 @@ export const PromptTemplateNode: React.FC<NodeProps<NodeData>> = ({ data, isConn
         <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
           {data.label || 'Template'}
         </div>
+        {/* Execution content */}
+        {template && (
+          <div style={{ marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Template</div>
+            <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 11, background: '#fafaf9', border: '1px solid #e5e7eb', borderRadius: 6, padding: 6, maxHeight: 56, overflow: 'hidden', textOverflow: 'ellipsis' }}>{template}</div>
+          </div>
+        )}
+        {inputVars && inputVars.length > 0 && (
+          <div style={{ marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Inputs</div>
+            <div style={{ fontSize: 11, color: '#111827' }}>{inputVars.join(', ')}</div>
+          </div>
+        )}
+        {resolved && (
+          <div style={{ marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Formatted</div>
+            <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 11, background: '#ecfeff', border: '1px solid #bae6fd', borderRadius: 6, padding: 6, maxHeight: 56, overflow: 'hidden', textOverflow: 'ellipsis' }}>{resolved}</div>
+          </div>
+        )}
       </div>
 
       <Handle type="source" position={Position.Right} style={{ background: '#555' }} isConnectable={isConnectable} />
@@ -89,9 +113,45 @@ export const LLMNode: React.FC<NodeProps<NodeData>> = ({ data, isConnectable }) 
     marginBottom: '8px',
   };
 
+  const input = data.artifacts?.input;
+  const output = data.artifacts?.output;
+  const modelInfo = data.artifacts?.model_info;
+  const provider: string | undefined = (data as any)?.nodeData?.data?.provider || modelInfo?.provider;
+  const modelName: string | undefined = modelInfo?.name || (data as any)?.nodeData?.data?.model;
+  const inLen = typeof input === 'string' ? input.length : undefined;
+  const outLen = typeof output === 'string' ? output.length : undefined;
+
+  const providerBadge = (() => {
+    if (!provider) return null;
+    const isGroq = provider.toLowerCase() === 'groq';
+    const bg = isGroq ? '#fee2e2' : '#eef2ff';
+    const color = isGroq ? '#b91c1c' : '#3730a3';
+    const label = isGroq ? '⚡ GROQ' : provider.toUpperCase();
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: 6,
+          right: 6,
+          padding: '2px 6px',
+          background: bg,
+          color,
+          border: `1px solid ${isGroq ? '#fecaca' : '#e0e7ff'}`,
+          borderRadius: 6,
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: 0.2,
+        }}
+      >
+        {label}
+      </div>
+    );
+  })();
+
   return (
-    <div style={getBaseNodeStyle('#7c3aed')}>
+    <div style={getBaseNodeStyle('#7c3aed')} data-provider={provider || ''} data-model={modelName || ''}>
       <div style={getAccentBarStyle('linear-gradient(90deg, #7c3aed 0%, #a855f7 100%)')}></div>
+      {providerBadge}
       
       <Handle type="target" position={Position.Left} style={{ background: '#555' }} isConnectable={isConnectable} />
       
@@ -108,6 +168,27 @@ export const LLMNode: React.FC<NodeProps<NodeData>> = ({ data, isConnectable }) 
         <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
           {data.label || 'Language Model'}
         </div>
+        {/* Execution content */}
+        {input && (
+          <div style={{ marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Prompt</div>
+            <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 11, background: '#fafaf9', border: '1px solid #e5e7eb', borderRadius: 6, padding: 6, maxHeight: 56, overflow: 'hidden', textOverflow: 'ellipsis' }}>{input}</div>
+          </div>
+        )}
+        {output && (
+          <div style={{ marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Response</div>
+            <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 11, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: 6, maxHeight: 56, overflow: 'hidden', textOverflow: 'ellipsis' }}>{output}</div>
+          </div>
+        )}
+        {(inLen || outLen || modelInfo || provider || modelName) && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
+            {inLen !== undefined && <span style={{ fontSize: 11, color: '#6b7280' }}>In: {inLen}</span>}
+            {outLen !== undefined && <span style={{ fontSize: 11, color: '#6b7280' }}>Out: {outLen}</span>}
+            {(modelInfo?.name || modelName) && <span style={{ fontSize: 11, color: '#6b7280' }}>{modelInfo?.name || modelName}</span>}
+            {provider && <span style={{ fontSize: 11, color: '#6b7280' }}>· {provider}</span>}
+          </div>
+        )}
       </div>
 
       <Handle type="source" position={Position.Right} style={{ background: '#555' }} isConnectable={isConnectable} />
@@ -129,6 +210,10 @@ export const ParserNode: React.FC<NodeProps<NodeData>> = ({ data, isConnectable 
     marginBottom: '8px',
   };
 
+  const input = data.artifacts?.input;
+  const output = data.artifacts?.output;
+  const parserType = data.artifacts?.parser_type;
+
   return (
     <div style={getBaseNodeStyle('#16a34a')}>
       <div style={getAccentBarStyle('linear-gradient(90deg, #16a34a 0%, #22c55e 100%)')}></div>
@@ -145,9 +230,25 @@ export const ParserNode: React.FC<NodeProps<NodeData>> = ({ data, isConnectable 
         <div style={{ fontSize: '13px', fontWeight: 600, color: '#15803d', marginBottom: '4px' }}>
           PARSER
         </div>
-        <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>
           {data.label || 'Output Parser'}
         </div>
+        {/* Execution content */}
+        {parserType && (
+          <div style={{ marginTop: 6, fontSize: 11, color: '#16a34a' }}>Type: {parserType}</div>
+        )}
+        {input && (
+          <div style={{ marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Input</div>
+            <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 11, background: '#fafaf9', border: '1px solid #e5e7eb', borderRadius: 6, padding: 6, maxHeight: 56, overflow: 'hidden', textOverflow: 'ellipsis' }}>{input}</div>
+          </div>
+        )}
+        {output && (
+          <div style={{ marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Output</div>
+            <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 11, background: '#ecfeff', border: '1px solid #bae6fd', borderRadius: 6, padding: 6, maxHeight: 56, overflow: 'hidden', textOverflow: 'ellipsis' }}>{output}</div>
+          </div>
+        )}
       </div>
 
       <Handle type="source" position={Position.Right} style={{ background: '#555' }} isConnectable={isConnectable} />

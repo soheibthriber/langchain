@@ -12,106 +12,15 @@ import ReactFlow, {
   OnSelectionChangeParams,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { ProfessionalNode } from './components/ProfessionalNodes';
+import { specializedNodeTypes } from './components/SpecializedNodes';
 
-// Register custom node types - using ProfessionalNode for all types
-const nodeTypes: NodeTypes = {
-  prompt: ProfessionalNode,
-  promptTemplate: ProfessionalNode,
-  llm: ProfessionalNode,
-  chatModel: ProfessionalNode,
-  parser: ProfessionalNode,
-  embeddings: ProfessionalNode,
-  textSplitter: ProfessionalNode,
-  documentLoader: ProfessionalNode,
-  retriever: ProfessionalNode,
-  vectorStore: ProfessionalNode,
-  conversationBufferMemory: ProfessionalNode,
-  conversationSummaryMemory: ProfessionalNode,
-  entityMemory: ProfessionalNode,
-  customMemory: ProfessionalNode,
-  sequentialChain: ProfessionalNode,
-  routerChain: ProfessionalNode,
-  mapReduceChain: ProfessionalNode,
-  agent: ProfessionalNode,
-  planner: ProfessionalNode,
-  executor: ProfessionalNode,
-  tool: ProfessionalNode,
-  calculatorTool: ProfessionalNode,
-  apiTool: ProfessionalNode,
-  input: ProfessionalNode,
-  output: ProfessionalNode,
-  callbacks: ProfessionalNode,
-  monitoring: ProfessionalNode,
-  logging: ProfessionalNode,
-  custom: ProfessionalNode,
-};
+// Register specialized node renderers that can show execution data
+const nodeTypes: NodeTypes = specializedNodeTypes as unknown as NodeTypes;
 
 const App: React.FC = () => {
-  // Professional LangChain nodes - showcasing different component types
-  const [nodes, setNodes, onNodesChange] = useNodesState([
-    {
-      id: 'prompt',
-      type: 'promptTemplate',
-      position: { x: 50, y: 100 },
-      data: { label: 'PromptTemplate', type: 'promptTemplate' }
-    },
-    {
-      id: 'llm',
-      type: 'chatModel',
-      position: { x: 350, y: 100 },
-      data: { label: 'ChatOpenAI', type: 'chatModel' }
-    },
-    {
-      id: 'parser',
-      type: 'parser',
-      position: { x: 650, y: 100 },
-      data: { label: 'StrOutputParser', type: 'parser' }
-    },
-    {
-      id: 'vectorstore',
-      type: 'vectorStore',
-      position: { x: 50, y: 250 },
-      data: { label: 'ChromaDB', type: 'vectorStore' }
-    },
-    {
-      id: 'retriever',
-      type: 'retriever',
-      position: { x: 350, y: 250 },
-      data: { label: 'VectorRetriever', type: 'retriever' }
-    },
-    {
-      id: 'memory',
-      type: 'conversationBufferMemory',
-      position: { x: 650, y: 250 },
-      data: { label: 'ConversationMemory', type: 'conversationBufferMemory' }
-    },
-    {
-      id: 'agent',
-      type: 'agent',
-      position: { x: 200, y: 400 },
-      data: { label: 'ReActAgent', type: 'agent', isActive: true }
-    },
-    {
-      id: 'tool',
-      type: 'calculatorTool',
-      position: { x: 500, y: 400 },
-      data: { label: 'Calculator', type: 'calculatorTool', isRunning: true }
-    }
-  ]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([
-    // Main chain flow
-    { id: 'e1-2', source: 'prompt', target: 'llm', animated: true },
-    { id: 'e2-3', source: 'llm', target: 'parser', animated: true },
-    // RAG flow
-    { id: 'e4-5', source: 'vectorstore', target: 'retriever', animated: true },
-    { id: 'e5-2', source: 'retriever', target: 'llm', animated: true },
-    // Memory connection
-    { id: 'e6-2', source: 'memory', target: 'llm', animated: true },
-    // Agent workflow
-    { id: 'e7-8', source: 'agent', target: 'tool', animated: true },
-    { id: 'e2-7', source: 'llm', target: 'agent', animated: true }
-  ]);
+  // Start empty; populate from API (Load Sample)
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
 
   const onSelectionChange = useCallback(({ nodes }: OnSelectionChangeParams) => {
@@ -122,31 +31,230 @@ const App: React.FC = () => {
     try {
       const response = await fetch('/api/runs/01_hello_chain/latest');
       if (response.ok) {
-        const data = await response.json();
+  const data = await response.json();
         
-        // Convert to simple format
-        const reactFlowNodes: Node[] = data.nodes.map((node: any, index: number) => ({
-          id: node.id,
-          type: node.type,
-          position: { x: 100 + (index * 200), y: 200 },
-          data: {
-            label: node.label,
-            type: node.type
-          },
-        }));
+        // Helpers: normalize node type to renderer keys
+        const normalizeType = (t: string): string => {
+          const map: Record<string, string> = {
+            // prompts
+            prompt: 'promptTemplate',
+            PromptTemplate: 'promptTemplate',
+            promptTemplate: 'promptTemplate',
+            // llms
+            llm: 'llm',
+            chatModel: 'llm',
+            ChatOpenAI: 'llm',
+            ChatAnthropic: 'llm',
+            // Prefer real providers
+            Groq: 'llm',
+            // parsers
+            parser: 'parser',
+            StrOutputParser: 'parser',
+          };
+          return map[t] || t;
+        };
+
+        // Helpers: build execution artifacts per node across v1.1 and v1.2
+        const version = data?.metadata?.version || '1.1';
+        const events: any[] = Array.isArray(data?.events) ? data.events : [];
+        const artifactsRoot = data?.artifacts || {};
+
+        const findEvent = (nodeId: string, kind: 'invoke_start' | 'invoke_end') =>
+          events.find(e => e.node_id === nodeId || e.nodeId === nodeId && (kind ? e.kind === kind : true));
+
+        const buildNodeArtifacts = (node: any) => {
+          const t = node.type;
+          const id = node.id;
+          // v1.1 direct mapping by id keys
+          if (version === '1.1') {
+            if (id === 'prompt' || t === 'promptTemplate' || t === 'PromptTemplate') {
+              const a = artifactsRoot.prompt || {};
+              return {
+                template: a.prompt || node?.data?.template,
+                input_variables: a.input_variables,
+                resolved_prompt: a.resolved_prompt,
+              };
+            }
+            if (id === 'llm' || t === 'chatModel' || t === 'llm') {
+              const a = artifactsRoot.llm || {};
+              return {
+                input: a.input,
+                output: a.output,
+                model_info: a.model_info,
+              };
+            }
+            if (id === 'parser' || t === 'parser' || t === 'StrOutputParser') {
+              const a = artifactsRoot.parser || {};
+              return {
+                input: a.input,
+                output: a.output,
+                parser_type: a.parser_type,
+              };
+            }
+            return {};
+          }
+          // v1.2 mapping via named artifacts + node snapshot
+          // Prompt
+          if (t === 'PromptTemplate') {
+            return {
+              template: node?.configuration?.template || node?.template_preview,
+              input_variables: node?.configuration?.input_variables,
+              resolved_prompt: artifactsRoot?.formatted_prompt?.content,
+            };
+          }
+          // LLM
+          if (t === 'ChatOpenAI' || t === 'ChatAnthropic' || t === 'Groq' || t === 'llm' || t === 'chatModel') {
+            const start = findEvent(id, 'invoke_start');
+            return {
+              input: start?.input_preview || artifactsRoot?.formatted_prompt?.content,
+              output: artifactsRoot?.llm_output?.content,
+              model_info: { name: node?.configuration?.model || node?.label },
+            };
+          }
+          // Parser
+          if (t === 'StrOutputParser' || t === 'parser') {
+            const start = findEvent(id, 'invoke_start');
+            return {
+              input: start?.input_preview || artifactsRoot?.llm_output?.content,
+              output: artifactsRoot?.final_output?.content,
+              parser_type: 'string',
+            };
+          }
+          return {};
+        };
+
+        // Convert to ReactFlow nodes
+        const reactFlowNodes: Node[] = data.nodes.map((node: any, index: number) => {
+          // Normalize by type first, then fall back to heuristics (id/label/data)
+          let normalizedType = normalizeType(node.type);
+          if (!normalizedType || normalizedType === 'unknown') {
+            const label: string = node.label || '';
+            const provider: string | undefined = node?.data?.provider;
+            const modelType: string | undefined = node?.data?.model_type;
+            if (node.id === 'llm' || /^(Groq:|ChatOpenAI:|Anthropic:|OpenAI:)/.test(label) || modelType === 'chat' || provider) {
+              normalizedType = 'llm';
+            } else if (node.id === 'prompt') {
+              normalizedType = 'promptTemplate';
+            } else if (node.id === 'parser') {
+              normalizedType = 'parser';
+            }
+          }
+          const execArtifacts = buildNodeArtifacts(node);
+          return {
+            id: node.id,
+            type: normalizedType,
+            position: { x: 120 + (index * 240), y: 180 },
+            data: {
+              label: node.label,
+              type: normalizedType,
+              nodeData: node,
+              artifacts: execArtifacts,
+            },
+          } as Node;
+        });
 
         const reactFlowEdges: Edge[] = data.edges.map((edge: any) => ({
           id: edge.id,
           source: typeof edge.source === 'string' ? edge.source : edge.source.nodeId,
           target: typeof edge.target === 'string' ? edge.target : edge.target.nodeId,
           animated: true,
+          label: edge.label || ''
         }));
 
         setNodes(reactFlowNodes);
         setEdges(reactFlowEdges);
+        
+        console.log('Loaded GraphJSON data:', data);
       }
     } catch (error) {
-      console.warn('API not available');
+      console.warn('API not available:', error);
+    }
+  }, [setNodes, setEdges]);
+
+  const runLesson = useCallback(async () => {
+    try {
+      const response = await fetch('/api/run/01_hello_chain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Explain how neural networks learn from data' }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Reuse the same mapping logic by faking a minimal GraphJSON container if needed
+        const graph = data?.nodes ? data : { ...data };
+
+        const normalizeType = (t: string): string => {
+          const map: Record<string, string> = {
+            prompt: 'promptTemplate',
+            PromptTemplate: 'promptTemplate',
+            promptTemplate: 'promptTemplate',
+            llm: 'llm',
+            chatModel: 'llm',
+            ChatOpenAI: 'llm',
+            ChatAnthropic: 'llm',
+            Groq: 'llm',
+            parser: 'parser',
+            StrOutputParser: 'parser',
+          };
+          return map[t] || t;
+        };
+
+  const version = graph?.metadata?.version || '1.1';
+        const artifactsRoot = graph?.artifacts || {};
+        const buildNodeArtifacts = (node: any) => {
+          const t = node.type;
+          const id = node.id;
+          if (version === '1.1') {
+            if (id === 'prompt' || t === 'promptTemplate' || t === 'PromptTemplate') {
+              const a = artifactsRoot.prompt || {};
+              return { template: a.prompt || node?.data?.template, input_variables: a.input_variables, resolved_prompt: a.resolved_prompt };
+            }
+            if (id === 'llm' || t === 'chatModel' || t === 'llm') {
+              const a = artifactsRoot.llm || {};
+              return { input: a.input, output: a.output, model_info: a.model_info };
+            }
+            if (id === 'parser' || t === 'parser' || t === 'StrOutputParser') {
+              const a = artifactsRoot.parser || {};
+              return { input: a.input, output: a.output, parser_type: a.parser_type };
+            }
+          }
+          return {};
+        };
+
+        const reactFlowNodes: Node[] = graph.nodes.map((node: any, index: number) => {
+          let normalizedType = normalizeType(node.type);
+          if (!normalizedType || normalizedType === 'unknown') {
+            const label: string = node.label || '';
+            const provider: string | undefined = node?.data?.provider;
+            const modelType: string | undefined = node?.data?.model_type;
+            if (node.id === 'llm' || /^(Groq:|ChatOpenAI:|Anthropic:|OpenAI:)/.test(label) || modelType === 'chat' || provider) {
+              normalizedType = 'llm';
+            } else if (node.id === 'prompt') {
+              normalizedType = 'promptTemplate';
+            } else if (node.id === 'parser') {
+              normalizedType = 'parser';
+            }
+          }
+          const execArtifacts = buildNodeArtifacts(node);
+          return {
+            id: node.id,
+            type: normalizedType,
+            position: { x: 120 + (index * 240), y: 180 },
+            data: { label: node.label, type: normalizedType, nodeData: node, artifacts: execArtifacts },
+          } as Node;
+        });
+        const reactFlowEdges: Edge[] = graph.edges.map((edge: any) => ({
+          id: edge.id,
+          source: typeof edge.source === 'string' ? edge.source : edge.source.nodeId,
+          target: typeof edge.target === 'string' ? edge.target : edge.target.nodeId,
+          animated: true,
+          label: edge.label || ''
+        }));
+        setNodes(reactFlowNodes);
+        setEdges(reactFlowEdges);
+      }
+    } catch (e) {
+      console.warn('Run lesson failed:', e);
     }
   }, [setNodes, setEdges]);
 
@@ -183,6 +291,12 @@ const App: React.FC = () => {
               >
                 📊 Load Sample (Lesson 1)
               </button>
+              <button
+                onClick={runLesson}
+                className="w-full mt-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium text-sm"
+              >
+                ▶️ Run Lesson (Groq)
+              </button>
               <div className="text-xs text-gray-500 pt-2 border-t">
                 {nodes.length} nodes • {edges.length} connections
               </div>
@@ -212,6 +326,14 @@ const App: React.FC = () => {
                   <span className="font-medium text-gray-600">ID:</span>
                   <span className="ml-2 font-mono text-xs text-gray-500">{selectedNode.id}</span>
                 </div>
+                {selectedNode.data.nodeData?.description && (
+                  <div>
+                    <span className="font-medium text-gray-600">Description:</span>
+                    <div className="ml-2 text-gray-700 text-xs mt-1">
+                      {selectedNode.data.nodeData.description}
+                    </div>
+                  </div>
+                )}
                 {selectedNode.data.isActive && (
                   <div className="flex items-center text-blue-600">
                     <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
@@ -226,6 +348,85 @@ const App: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {/* Node Details */}
+            {selectedNode.data.nodeData && (
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <h4 className="font-medium mb-2">Configuration</h4>
+                <div className="text-sm space-y-1">
+                  {Object.entries(selectedNode.data.nodeData).map(([key, value]) => (
+                    <div key={key}>
+                      <span className="font-medium text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>
+                      <span className="ml-2 text-gray-700">
+                        {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Artifacts */}
+            {selectedNode.data.artifacts && Object.keys(selectedNode.data.artifacts).length > 0 && (
+              <div className="p-3 bg-yellow-50 rounded-lg">
+                <h4 className="font-medium mb-2 flex items-center">
+                  <span className="mr-1">📋</span>
+                  Execution Data
+                </h4>
+                <div className="text-sm space-y-2">
+                  {selectedNode.data.artifacts.user_input && (
+                    <div>
+                      <span className="font-medium text-gray-600">User Input:</span>
+                      <div className="ml-2 p-2 bg-white rounded border text-xs font-mono">
+                        "{selectedNode.data.artifacts.user_input}"
+                      </div>
+                    </div>
+                  )}
+                  {selectedNode.data.artifacts.template && (
+                    <div>
+                      <span className="font-medium text-gray-600">Template:</span>
+                      <div className="ml-2 p-2 bg-white rounded border text-xs font-mono">
+                        {selectedNode.data.artifacts.template}
+                      </div>
+                    </div>
+                  )}
+                  {selectedNode.data.artifacts.resolved_prompt && (
+                    <div>
+                      <span className="font-medium text-gray-600">Resolved Prompt:</span>
+                      <div className="ml-2 p-2 bg-white rounded border text-xs">
+                        {selectedNode.data.artifacts.resolved_prompt}
+                      </div>
+                    </div>
+                  )}
+                  {selectedNode.data.artifacts.output && (
+                    <div>
+                      <span className="font-medium text-gray-600">Output:</span>
+                      <div className="ml-2 p-2 bg-green-50 rounded border text-xs">
+                        {selectedNode.data.artifacts.output}
+                      </div>
+                    </div>
+                  )}
+                  {selectedNode.data.artifacts.model_info && (
+                    <div>
+                      <span className="font-medium text-gray-600">Model Info:</span>
+                      <div className="ml-2 text-xs text-gray-700">
+                        {JSON.stringify(selectedNode.data.artifacts.model_info, null, 2)}
+                      </div>
+                    </div>
+                  )}
+                  {(selectedNode.data.artifacts.input_length || selectedNode.data.artifacts.output_length) && (
+                    <div className="flex gap-4 text-xs text-gray-600">
+                      {selectedNode.data.artifacts.input_length && (
+                        <span>Input: {selectedNode.data.artifacts.input_length} chars</span>
+                      )}
+                      {selectedNode.data.artifacts.output_length && (
+                        <span>Output: {selectedNode.data.artifacts.output_length} chars</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             
             {/* Connection Info */}
             <div className="p-3 bg-gray-50 rounded-lg">

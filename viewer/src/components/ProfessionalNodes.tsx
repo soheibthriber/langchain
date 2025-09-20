@@ -348,6 +348,11 @@ interface ProfessionalNodeProps {
     type: string;
     isActive?: boolean;
     isRunning?: boolean;
+    nodeData?: any; // Dynamic node data from API
+    icon?: string;
+    color?: string;
+    category?: string;
+    description?: string;
   };
 }
 
@@ -356,18 +361,58 @@ export const ProfessionalNode: React.FC<ProfessionalNodeProps> = ({ data }) => {
   const config = nodeTypeConfig[data.type as keyof typeof nodeTypeConfig] || nodeTypeConfig.custom;
   const IconComponent = config.icon;
   
+  // Use dynamic data if available, otherwise fallback to static config
+  const nodeIcon = data.nodeData?.icon || data.icon;
+  const nodeColor = data.nodeData?.color || data.color;
+  const nodeCategory = data.nodeData?.category || data.category || config.category;
+  const nodeDescription = data.nodeData?.description || data.description;
+  
+  // Convert hex color to appropriate styles
+  const getColorStyles = (hexColor?: string) => {
+    if (!hexColor) {
+      return config.colors; // Fallback to static colors
+    }
+    
+    // Create dynamic styles based on hex color
+    return {
+      bg: `bg-opacity-20`,
+      border: `border-opacity-60`,
+      text: 'text-gray-800',
+      hover: 'hover:bg-opacity-30'
+    };
+  };
+  
+  const colorStyles = getColorStyles(nodeColor);
+  
   // Dynamic classes based on state
   const baseClasses = `
     relative flex items-center p-3 rounded-lg border-2 shadow-sm 
     min-w-48 transition-all duration-200 hover:scale-105
-    ${config.colors.bg} ${config.colors.border} ${config.colors.text} ${config.colors.hover}
+    ${nodeColor ? 'bg-opacity-20 border-opacity-60' : `${config.colors.bg} ${config.colors.border}`}
+    ${nodeColor ? 'text-gray-800' : config.colors.text}
+    ${nodeColor ? 'hover:bg-opacity-30' : config.colors.hover}
   `;
   
   const activeClasses = data.isActive ? 'ring-2 ring-blue-400 ring-opacity-75' : '';
   const runningClasses = data.isRunning ? 'animate-pulse' : '';
   
+  // Create inline styles for dynamic colors
+  const nodeStyle: React.CSSProperties = nodeColor ? {
+    backgroundColor: nodeColor + '20', // Add transparency
+    borderColor: nodeColor,
+    color: '#374151' // gray-700
+  } : {};
+  
+  const iconStyle: React.CSSProperties = nodeColor ? {
+    backgroundColor: nodeColor + '10', // Lighter background
+    borderColor: nodeColor,
+  } : {};
+  
   return (
-    <div className={`${baseClasses} ${activeClasses} ${runningClasses}`}>
+    <div 
+      className={`${baseClasses} ${activeClasses} ${runningClasses}`}
+      style={nodeStyle}
+    >
       {/* Input Handle */}
       <Handle 
         type="target" 
@@ -378,20 +423,33 @@ export const ProfessionalNode: React.FC<ProfessionalNodeProps> = ({ data }) => {
       {/* Node Content */}
       <div className="flex items-center space-x-3">
         {/* Icon */}
-        <div className={`flex-shrink-0 p-2 rounded-md ${config.colors.bg} border ${config.colors.border}`}>
-          <IconComponent size={20} className={config.colors.text} />
+        <div 
+          className={`flex-shrink-0 p-2 rounded-md border ${nodeColor ? '' : `${config.colors.bg} ${config.colors.border}`}`}
+          style={iconStyle}
+        >
+          {nodeIcon ? (
+            <span className="text-lg">{nodeIcon}</span>
+          ) : (
+            <IconComponent size={20} className={nodeColor ? 'text-gray-700' : config.colors.text} />
+          )}
         </div>
         
         {/* Text Content */}
         <div className="flex-1 min-w-0">
           {/* Main Label */}
-          <div className={`font-semibold text-sm ${config.colors.text} truncate`}>
+          <div className={`font-semibold text-sm truncate`}>
             {data.label}
           </div>
           {/* Category */}
           <div className="text-xs text-gray-500 mt-0.5">
-            {config.category}
+            {nodeCategory}
           </div>
+          {/* Description (if available) */}
+          {nodeDescription && (
+            <div className="text-xs text-gray-400 mt-0.5 truncate" title={nodeDescription}>
+              {nodeDescription}
+            </div>
+          )}
         </div>
       </div>
       
