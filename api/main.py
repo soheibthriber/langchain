@@ -1,5 +1,8 @@
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Optional
+import importlib.util
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import json
@@ -21,6 +24,40 @@ ROOT = Path(__file__).resolve().parents[1]
 @app.get("/")
 def read_root():
     return {"message": "LangChain Visualizer API", "version": "1.1"}
+
+
+class RunRequest(BaseModel):
+    # Use Optional[str] for Pydantic v1 compatibility (avoids UnionType '|')
+    text: Optional[str] = None
+
+
+@app.post("/api/run/{lesson_id}")
+def run_lesson(lesson_id: str, req: Optional[RunRequest] = None):
+    """Execute a lesson's code to regenerate graph.json and return the data."""
+    # Resolve lesson path
+    lesson_dir = ROOT / "lessons" / lesson_id
+    code_path = lesson_dir / "code.py"
+    if not code_path.exists():
+        raise HTTPException(status_code=404, detail=f"Lesson {lesson_id} code.py not found")
+
+    # Dynamically import code.py and call run()
+    try:
+        spec = importlib.util.spec_from_file_location("lesson_code", code_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("Failed to load lesson module spec")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)  # type: ignore
+        if not hasattr(module, "run"):
+            raise RuntimeError("Lesson module missing run()")
+
+        # Handle empty/missing body gracefully
+        text_arg = req.text if isinstance(req, RunRequest) else None
+        graph = module.run(text=text_arg)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error executing lesson: {e}")
+
+    # Return latest graph
+    return JSONResponse(content=graph)
 
 
 @app.get("/api/runs/{lesson_id}/latest")
