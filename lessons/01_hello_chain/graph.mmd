@@ -1,6 +1,6 @@
 flowchart LR
   prompt[PromptTemplate]
-  llm[MockLLM:mock-llm]
+  llm[Groq:llama-3.1-8b-instant]
   parser[StrOutputParser]
   prompt -->|formatted prompt| llm
   llm -->|raw completion| parser
