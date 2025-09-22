@@ -19,9 +19,11 @@ const nodeTypes: NodeTypes = specializedNodeTypes as unknown as NodeTypes;
 
 const App: React.FC = () => {
   // Base URLs from Vite. In production, BASE_URL is '/langchain/' for GH Pages.
+  const isDev: boolean = !!(import.meta as any).env?.DEV;
   const API_BASE: string = (import.meta as any).env?.VITE_API_BASE_URL || '';
   const PUBLIC_BASE: string = (import.meta as any).env?.BASE_URL || '/';
-  const hasApi = typeof API_BASE === 'string' && API_BASE.length > 0;
+  const preferApi = isDev || (typeof API_BASE === 'string' && API_BASE.length > 0);
+  const apiPrefix = API_BASE || '';
   // Start empty; populate from API (Load Sample)
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -33,11 +35,23 @@ const App: React.FC = () => {
 
   const loadSampleData = useCallback(async () => {
     try {
-  // If API is configured, get latest via API; otherwise fall back to static graph.json under BASE_URL
-  const url = hasApi ? `${API_BASE}/api/runs/01_hello_chain/latest` : `${PUBLIC_BASE}graph.json`;
-      const response = await fetch(url);
-      if (response.ok) {
-  const data = await response.json();
+      // Prefer API in dev; fallback to static if unavailable
+      const fetchApi = async () => {
+        const res = await fetch(`${apiPrefix}/api/runs/01_hello_chain/latest`);
+        if (!res.ok) throw new Error(String(res.status));
+        return res.json();
+      };
+      const fetchStatic = async () => {
+        const res = await fetch(`${PUBLIC_BASE}graph.json`);
+        if (!res.ok) throw new Error(String(res.status));
+        return res.json();
+      };
+      let data: any;
+      try {
+        data = preferApi ? await fetchApi() : await fetchStatic();
+      } catch {
+        data = preferApi ? await fetchStatic() : await fetchApi();
+      }
         
         // Helpers: normalize node type to renderer keys
         const normalizeType = (t: string): string => {
@@ -170,21 +184,20 @@ const App: React.FC = () => {
         setNodes(reactFlowNodes);
         setEdges(reactFlowEdges);
         
-        console.log('Loaded GraphJSON data:', data);
-      }
+    console.log('Loaded GraphJSON data:', data);
     } catch (error) {
       console.warn('Load sample failed:', error);
     }
-  }, [setNodes, setEdges, API_BASE, hasApi]);
+  }, [setNodes, setEdges, API_BASE, PUBLIC_BASE, preferApi, apiPrefix]);
 
   const runLesson = useCallback(async () => {
     try {
-      if (!hasApi) {
+  if (!preferApi) {
         // Static mode: no API. Just load the sample graph from the static file.
         await loadSampleData();
         return;
       }
-      const response = await fetch(`${API_BASE}/api/run/01_hello_chain`, {
+  const response = await fetch(`${apiPrefix}/api/run/01_hello_chain`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: 'Explain how neural networks learn from data' }),
@@ -266,8 +279,9 @@ const App: React.FC = () => {
       }
     } catch (e) {
       console.warn('Run lesson failed:', e);
+      await loadSampleData();
     }
-  }, [setNodes, setEdges, API_BASE, hasApi, loadSampleData]);
+  }, [setNodes, setEdges, API_BASE, apiPrefix, preferApi, loadSampleData]);
 
   return (
     <div className="w-full h-screen flex">
