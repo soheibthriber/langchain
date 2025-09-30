@@ -1,0 +1,236 @@
+{
+  "metadata": {
+    "version": "1.1",
+    "run_id": "8ebed041-113d-4222-82b5-8dc8b908eba1",
+    "created_at": "2025-09-20T17:09:48.984167Z",
+    "lesson_id": "01_hello_chain",
+    "tags": []
+  },
+  "nodes": [
+    {
+      "id": "prompt",
+      "label": "PromptTemplate",
+      "type": "promptTemplate",
+      "subType": null,
+      "tags": [
+        "core",
+        "input"
+      ],
+      "data": {
+        "template": "Summarize in one sentence: {text}",
+        "input_variables": [
+          "text"
+        ],
+        "template_format": "f-string",
+        "description": "Formats user input into a summarization prompt"
+      }
+    },
+    {
+      "id": "llm",
+      "label": "Groq:llama-3.1-8b-instant",
+      "type": "chatModel",
+      "subType": null,
+      "tags": [
+        "core",
+        "llm"
+      ],
+      "data": {
+        "model": "llama-3.1-8b-instant",
+        "temperature": 0,
+        "provider": "groq",
+        "description": "Language model that generates text completions",
+        "model_type": "chat"
+      }
+    },
+    {
+      "id": "parser",
+      "label": "StrOutputParser",
+      "type": "parser",
+      "subType": null,
+      "tags": [
+        "core",
+        "output"
+      ],
+      "data": {
+        "parser_type": "string",
+        "output_format": "str",
+        "description": "Ensures clean string output from LLM response"
+      }
+    }
+  ],
+  "ports": [
+    {
+      "nodeId": "prompt",
+      "portId": "in",
+      "direction": "in",
+      "label": "input"
+    },
+    {
+      "nodeId": "prompt",
+      "portId": "out",
+      "direction": "out",
+      "label": "formatted_prompt"
+    },
+    {
+      "nodeId": "llm",
+      "portId": "in",
+      "direction": "in",
+      "label": "prompt"
+    },
+    {
+      "nodeId": "llm",
+      "portId": "out",
+      "direction": "out",
+      "label": "completion"
+    },
+    {
+      "nodeId": "parser",
+      "portId": "in",
+      "direction": "in",
+      "label": "text"
+    },
+    {
+      "nodeId": "parser",
+      "portId": "out",
+      "direction": "out",
+      "label": "parsed_output"
+    }
+  ],
+  "edges": [
+    {
+      "id": "prompt:out->llm:in",
+      "source": {
+        "nodeId": "prompt",
+        "portId": "out"
+      },
+      "target": {
+        "nodeId": "llm",
+        "portId": "in"
+      },
+      "label": "formatted prompt"
+    },
+    {
+      "id": "llm:out->parser:in",
+      "source": {
+        "nodeId": "llm",
+        "portId": "out"
+      },
+      "target": {
+        "nodeId": "parser",
+        "portId": "in"
+      },
+      "label": "raw completion"
+    }
+  ],
+  "groups": [
+    {
+      "id": "hello_chain",
+      "label": "Hello Chain",
+      "nodeIds": [
+        "prompt",
+        "llm",
+        "parser"
+      ],
+      "type": "chain",
+      "collapsed": false
+    }
+  ],
+  "run": {
+    "latency_ms": 253,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "cost": null,
+    "errors": null
+  },
+  "events": [
+    {
+      "ts_ms": 0,
+      "kind": "invoke_start",
+      "nodeId": "prompt",
+      "edgeId": null,
+      "payload": {
+        "input": {
+          "text": "How do neural networks learn from data?"
+        }
+      }
+    },
+    {
+      "ts_ms": 0,
+      "kind": "invoke_end",
+      "nodeId": "prompt",
+      "edgeId": null,
+      "payload": {
+        "formatted_prompt": "Summarize in one sentence: How do neural networks learn from data?"
+      }
+    },
+    {
+      "ts_ms": 0,
+      "kind": "invoke_start",
+      "nodeId": "llm",
+      "edgeId": null,
+      "payload": {
+        "prompt": "Summarize in one sentence: How do neural networks learn from data?"
+      }
+    },
+    {
+      "ts_ms": 253,
+      "kind": "invoke_end",
+      "nodeId": "llm",
+      "edgeId": null,
+      "payload": {
+        "output": "Neural networks learn from data through a process called supervised or unsupervised learning, where they adjust their connection weights and biases based on the differences between their predicted output and the actual output, using algorithms like backpropagation and gradient descent to minimize the error."
+      }
+    },
+    {
+      "ts_ms": 253,
+      "kind": "invoke_start",
+      "nodeId": "parser",
+      "edgeId": null,
+      "payload": {
+        "input": "Neural networks learn from data through a process called supervised or unsupervised learning, where they adjust their connection weights and biases based on the differences between their predicted output and the actual output, using algorithms like backpropagation and gradient descent to minimize the error."
+      }
+    },
+    {
+      "ts_ms": 253,
+      "kind": "invoke_end",
+      "nodeId": "parser",
+      "edgeId": null,
+      "payload": {
+        "output": "Neural networks learn from data through a process called supervised or unsupervised learning, where they adjust their connection weights and biases based on the differences between their predicted output and the actual output, using algorithms like backpropagation and gradient descent to minimize the error."
+      }
+    }
+  ],
+  "artifacts": {
+    "prompt": {
+      "prompt": "Summarize in one sentence: {text}",
+      "resolved_prompt": "Summarize in one sentence: How do neural networks learn from data?",
+      "input_variables": [
+        "text"
+      ],
+      "input_data": {
+        "text": "How do neural networks learn from data?"
+      },
+      "user_input": "How do neural networks learn from data?"
+    },
+    "llm": {
+      "input": "Summarize in one sentence: How do neural networks learn from data?",
+      "output": "Neural networks learn from data through a process called supervised or unsupervised learning, where they adjust their connection weights and biases based on the differences between their predicted output and the actual output, using algorithms like backpropagation and gradient descent to minimize the error.",
+      "model_info": {
+        "name": "llama-3.1-8b-instant",
+        "provider": "groq",
+        "temperature": 0
+      },
+      "prompt_length": 66,
+      "output_length": 308
+    },
+    "parser": {
+      "input": "Neural networks learn from data through a process called supervised or unsupervised learning, where they adjust their connection weights and biases based on the differences between their predicted output and the actual output, using algorithms like backpropagation and gradient descent to minimize the error.",
+      "output": "Neural networks learn from data through a process called supervised or unsupervised learning, where they adjust their connection weights and biases based on the differences between their predicted output and the actual output, using algorithms like backpropagation and gradient descent to minimize the error.",
+      "parser_type": "string",
+      "input_length": 308,
+      "output_length": 308,
+      "processing_notes": "Converted to clean string format"
+    }
+  },
+  "styles": {}
+}

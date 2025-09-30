@@ -169,8 +169,25 @@ const App: React.FC = () => {
     const fetchLessons = async () => {
       try {
         const baseUrl = isDev ? '' : apiPrefix;
-        const response = await fetch(`${baseUrl}/api/lessons`);
-        if (response.ok) {
+        
+        // In static deployment (GitHub Pages), VITE_API_BASE_URL is empty
+        // Try API first, then fallback to static lessons manifest
+        let response;
+        
+        if (baseUrl !== '') {
+          // API mode (local development with backend)
+          response = await fetch(`${baseUrl}/api/lessons`);
+        } else {
+          // Static mode (GitHub Pages) - try lessons manifest
+          try {
+            response = await fetch('/langchain/lessons/index.json');
+          } catch {
+            // Fallback if manifest doesn't exist
+            response = null;
+          }
+        }
+        
+        if (response && response.ok) {
           const data = await response.json();
           const lessonList = data.lessons.map((lesson: any) => ({
             id: lesson.id || lesson.lesson_id,
@@ -183,6 +200,8 @@ const App: React.FC = () => {
           // Sort lessons by lesson_id to ensure proper order (01_hello_chain before 02_prompt_patterns)
           lessonList.sort((a: any, b: any) => a.lesson_id.localeCompare(b.lesson_id));
           setAvailableLessons(lessonList);
+        } else {
+          throw new Error('Failed to fetch lessons from API or static manifest');
         }
       } catch (error) {
         console.error('Failed to fetch lessons:', error);
@@ -212,7 +231,16 @@ const App: React.FC = () => {
     try {
       // In dev mode, use proxy; in production use API_BASE
       const baseUrl = isDev ? '' : apiPrefix;
-      const url = `${baseUrl}/api/runs/${lessonId}/latest`;
+      
+      let url;
+      if (baseUrl !== '') {
+        // API mode (local development with backend)
+        url = `${baseUrl}/api/runs/${lessonId}/latest`;
+      } else {
+        // Static mode (GitHub Pages) - load from public lessons directory
+        url = `/langchain/lessons/${lessonId}.json`;
+      }
+      
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();

@@ -1,0 +1,523 @@
+{
+  "metadata": {
+    "version": "1.1",
+    "run_id": "a254a193-cb3f-4388-9c9d-24a3e1378b86",
+    "created_at": "2025-09-30T09:11:28.093761Z",
+    "lesson_id": "02_prompt_patterns",
+    "tags": []
+  },
+  "nodes": [
+    {
+      "id": "zero_shot",
+      "label": "Zero-Shot Prompt",
+      "type": "promptTemplate",
+      "subType": null,
+      "tags": [
+        "prompt",
+        "zero-shot"
+      ],
+      "data": {
+        "strategy": "zero_shot",
+        "template": "Answer this question clearly and concisely: {question}",
+        "description": "Direct question without examples or guidance"
+      }
+    },
+    {
+      "id": "few_shot",
+      "label": "Few-Shot Prompt",
+      "type": "promptTemplate",
+      "subType": null,
+      "tags": [
+        "prompt",
+        "few-shot"
+      ],
+      "data": {
+        "strategy": "few_shot",
+        "template": "Examples of good answers:\nQ: What is artificial intelligence?\nA: Artificial intelligence (AI) is a field of computer science focused on creating systems that can perform tasks typically requiring human intelligence, such as learning, reasoning, and problem-solving.\n\nQ: What is deep learning?\nA: Deep learning is a subset of machine learning that uses neural networks with multiple layers to learn complex patterns in large amounts of data.\n\nQ: {question}\nA:",
+        "description": "Question with examples to demonstrate desired format"
+      }
+    },
+    {
+      "id": "cot",
+      "label": "Chain-of-Thought",
+      "type": "promptTemplate",
+      "subType": null,
+      "tags": [
+        "prompt",
+        "chain-of-thought"
+      ],
+      "data": {
+        "strategy": "chain_of_thought",
+        "template": "Think step by step to answer this question: {question}\n\nLet me break this down:",
+        "description": "Question encouraging step-by-step reasoning"
+      }
+    },
+    {
+      "id": "llm_zero",
+      "label": "Groq:llama-3.1-8b-instant",
+      "type": "llm",
+      "subType": null,
+      "tags": [
+        "core",
+        "llm",
+        "zero-shot"
+      ],
+      "data": {
+        "model": "llama-3.1-8b-instant",
+        "temperature": 0,
+        "provider": "groq",
+        "description": "Zero-shot strategy execution",
+        "model_type": "chat",
+        "strategy": "zero_shot"
+      }
+    },
+    {
+      "id": "llm_few",
+      "label": "Groq:llama-3.1-8b-instant",
+      "type": "llm",
+      "subType": null,
+      "tags": [
+        "core",
+        "llm",
+        "few-shot"
+      ],
+      "data": {
+        "model": "llama-3.1-8b-instant",
+        "temperature": 0,
+        "provider": "groq",
+        "description": "Few-shot strategy execution",
+        "model_type": "chat",
+        "strategy": "few_shot"
+      }
+    },
+    {
+      "id": "llm_cot",
+      "label": "Groq:llama-3.1-8b-instant",
+      "type": "llm",
+      "subType": null,
+      "tags": [
+        "core",
+        "llm",
+        "chain-of-thought"
+      ],
+      "data": {
+        "model": "llama-3.1-8b-instant",
+        "temperature": 0,
+        "provider": "groq",
+        "description": "Chain-of-thought strategy execution",
+        "model_type": "chat",
+        "strategy": "chain_of_thought"
+      }
+    },
+    {
+      "id": "parser_zero",
+      "label": "Zero-Shot Parser",
+      "type": "parser",
+      "subType": null,
+      "tags": [
+        "core",
+        "output",
+        "zero-shot"
+      ],
+      "data": {
+        "parser_type": "string",
+        "description": "Processes zero-shot strategy output",
+        "strategy": "zero_shot"
+      }
+    },
+    {
+      "id": "parser_few",
+      "label": "Few-Shot Parser",
+      "type": "parser",
+      "subType": null,
+      "tags": [
+        "core",
+        "output",
+        "few-shot"
+      ],
+      "data": {
+        "parser_type": "string",
+        "description": "Processes few-shot strategy output",
+        "strategy": "few_shot"
+      }
+    },
+    {
+      "id": "parser_cot",
+      "label": "Chain-of-Thought Parser",
+      "type": "parser",
+      "subType": null,
+      "tags": [
+        "core",
+        "output",
+        "chain-of-thought"
+      ],
+      "data": {
+        "parser_type": "string",
+        "description": "Processes chain-of-thought strategy output",
+        "strategy": "chain_of_thought"
+      }
+    }
+  ],
+  "ports": [],
+  "edges": [
+    {
+      "id": "zero_shot->llm_zero",
+      "source": {
+        "nodeId": "zero_shot"
+      },
+      "target": {
+        "nodeId": "llm_zero"
+      },
+      "label": "zero-shot prompt"
+    },
+    {
+      "id": "llm_zero->parser_zero",
+      "source": {
+        "nodeId": "llm_zero"
+      },
+      "target": {
+        "nodeId": "parser_zero"
+      },
+      "label": "zero-shot response"
+    },
+    {
+      "id": "few_shot->llm_few",
+      "source": {
+        "nodeId": "few_shot"
+      },
+      "target": {
+        "nodeId": "llm_few"
+      },
+      "label": "few-shot prompt"
+    },
+    {
+      "id": "llm_few->parser_few",
+      "source": {
+        "nodeId": "llm_few"
+      },
+      "target": {
+        "nodeId": "parser_few"
+      },
+      "label": "few-shot response"
+    },
+    {
+      "id": "cot->llm_cot",
+      "source": {
+        "nodeId": "cot"
+      },
+      "target": {
+        "nodeId": "llm_cot"
+      },
+      "label": "chain-of-thought prompt"
+    },
+    {
+      "id": "llm_cot->parser_cot",
+      "source": {
+        "nodeId": "llm_cot"
+      },
+      "target": {
+        "nodeId": "parser_cot"
+      },
+      "label": "chain-of-thought response"
+    }
+  ],
+  "groups": [
+    {
+      "id": "zero_shot_chain",
+      "label": "Zero-Shot Strategy",
+      "nodeIds": [
+        "zero_shot",
+        "llm_zero",
+        "parser_zero"
+      ],
+      "type": "chain",
+      "collapsed": false
+    },
+    {
+      "id": "few_shot_chain",
+      "label": "Few-Shot Strategy",
+      "nodeIds": [
+        "few_shot",
+        "llm_few",
+        "parser_few"
+      ],
+      "type": "chain",
+      "collapsed": false
+    },
+    {
+      "id": "cot_chain",
+      "label": "Chain-of-Thought Strategy",
+      "nodeIds": [
+        "cot",
+        "llm_cot",
+        "parser_cot"
+      ],
+      "type": "chain",
+      "collapsed": false
+    }
+  ],
+  "run": {
+    "latency_ms": 1867,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "cost": null,
+    "errors": null
+  },
+  "events": [
+    {
+      "ts_ms": 0,
+      "kind": "invoke_start",
+      "nodeId": "zero_shot",
+      "edgeId": null,
+      "payload": {
+        "input": {
+          "question": "What is the difference between AI and machine learning?"
+        }
+      }
+    },
+    {
+      "ts_ms": 0,
+      "kind": "invoke_end",
+      "nodeId": "zero_shot",
+      "edgeId": null,
+      "payload": {
+        "resolved_prompt": "Answer this question clearly and concisely: What is the difference between AI and machine learning?..."
+      }
+    },
+    {
+      "ts_ms": 0,
+      "kind": "invoke_start",
+      "nodeId": "llm_zero",
+      "edgeId": null,
+      "payload": {
+        "strategy": "zero_shot",
+        "input_preview": "Answer this question clearly and concisely: What is the difference between AI and machine learning?"
+      }
+    },
+    {
+      "ts_ms": 548,
+      "kind": "invoke_end",
+      "nodeId": "llm_zero",
+      "edgeId": null,
+      "payload": {
+        "strategy": "zero_shot",
+        "output_preview": "The difference between AI (Artificial Intelligence) and Machine Learning (ML) is mainly a matter of "
+      }
+    },
+    {
+      "ts_ms": 548,
+      "kind": "invoke_start",
+      "nodeId": "parser_zero",
+      "edgeId": null,
+      "payload": {
+        "input_preview": "The difference between AI (Artificial Intelligence) and Machine Learning (ML) is mainly a matter of "
+      }
+    },
+    {
+      "ts_ms": 548,
+      "kind": "invoke_end",
+      "nodeId": "parser_zero",
+      "edgeId": null,
+      "payload": {
+        "output_preview": "The difference between AI (Artificial Intelligence) and Machine Learning (ML) is mainly a matter of "
+      }
+    },
+    {
+      "ts_ms": 548,
+      "kind": "invoke_start",
+      "nodeId": "few_shot",
+      "edgeId": null,
+      "payload": {
+        "input": {
+          "question": "What is the difference between AI and machine learning?"
+        }
+      }
+    },
+    {
+      "ts_ms": 548,
+      "kind": "invoke_end",
+      "nodeId": "few_shot",
+      "edgeId": null,
+      "payload": {
+        "resolved_prompt": "Examples of good answers:\nQ: What is artificial intelligence?\nA: Artificial intelligence (AI) is a f..."
+      }
+    },
+    {
+      "ts_ms": 548,
+      "kind": "invoke_start",
+      "nodeId": "llm_few",
+      "edgeId": null,
+      "payload": {
+        "strategy": "few_shot",
+        "input_preview": "Examples of good answers:\nQ: What is artificial intelligence?\nA: Artificial intelligence (AI) is a f"
+      }
+    },
+    {
+      "ts_ms": 958,
+      "kind": "invoke_end",
+      "nodeId": "llm_few",
+      "edgeId": null,
+      "payload": {
+        "strategy": "few_shot",
+        "output_preview": "A: The difference between AI and machine learning lies in their scope and functionality. Artificial "
+      }
+    },
+    {
+      "ts_ms": 958,
+      "kind": "invoke_start",
+      "nodeId": "parser_few",
+      "edgeId": null,
+      "payload": {
+        "input_preview": "A: The difference between AI and machine learning lies in their scope and functionality. Artificial "
+      }
+    },
+    {
+      "ts_ms": 958,
+      "kind": "invoke_end",
+      "nodeId": "parser_few",
+      "edgeId": null,
+      "payload": {
+        "output_preview": "A: The difference between AI and machine learning lies in their scope and functionality. Artificial "
+      }
+    },
+    {
+      "ts_ms": 958,
+      "kind": "invoke_start",
+      "nodeId": "cot",
+      "edgeId": null,
+      "payload": {
+        "input": {
+          "question": "What is the difference between AI and machine learning?"
+        }
+      }
+    },
+    {
+      "ts_ms": 958,
+      "kind": "invoke_end",
+      "nodeId": "cot",
+      "edgeId": null,
+      "payload": {
+        "resolved_prompt": "Think step by step to answer this question: What is the difference between AI and machine learning?\n..."
+      }
+    },
+    {
+      "ts_ms": 958,
+      "kind": "invoke_start",
+      "nodeId": "llm_cot",
+      "edgeId": null,
+      "payload": {
+        "strategy": "cot",
+        "input_preview": "Think step by step to answer this question: What is the difference between AI and machine learning?\n"
+      }
+    },
+    {
+      "ts_ms": 1867,
+      "kind": "invoke_end",
+      "nodeId": "llm_cot",
+      "edgeId": null,
+      "payload": {
+        "strategy": "cot",
+        "output_preview": "I'll help you break it down step by step to understand the difference between AI and machine learnin"
+      }
+    },
+    {
+      "ts_ms": 1867,
+      "kind": "invoke_start",
+      "nodeId": "parser_cot",
+      "edgeId": null,
+      "payload": {
+        "input_preview": "I'll help you break it down step by step to understand the difference between AI and machine learnin"
+      }
+    },
+    {
+      "ts_ms": 1867,
+      "kind": "invoke_end",
+      "nodeId": "parser_cot",
+      "edgeId": null,
+      "payload": {
+        "output_preview": "I'll help you break it down step by step to understand the difference between AI and machine learnin"
+      }
+    }
+  ],
+  "artifacts": {
+    "zero_shot": {
+      "template": "Answer this question clearly and concisely: {question}",
+      "input_variables": [
+        "question"
+      ],
+      "resolved_prompt": "Answer this question clearly and concisely: What is the difference between AI and machine learning?",
+      "strategy_type": "zero_shot",
+      "user_input": "What is the difference between AI and machine learning?"
+    },
+    "llm_zero": {
+      "input": "Answer this question clearly and concisely: What is the difference between AI and machine learning?",
+      "output": "The difference between AI (Artificial Intelligence) and Machine Learning (ML) is mainly a matter of scope and complexity:\n\n- **Artificial Intelligence (AI)**: AI is a broader field that focuses on creating intelligent machines that can think, learn, and behave like humans. It involves the development of algorithms and systems that can perform various tasks, such as decision-making, problem-solving, and reasoning. AI aims to create machines that can understand natural language, perceive their environment, and interact with humans in a more human-like way.\n\n- **Machine Learning (ML)**: ML is a subset of AI that focuses on the development of algorithms and statistical models that enable machines to learn from data, identify patterns, and make predictions or decisions. ML involves training machines on large datasets to improve their performance on specific tasks, such as image recognition, text classification, or speech recognition.\n\nIn other words, AI is the overarching field that includes ML, and ML is a key technique used to achieve AI's goals. While AI is interested in creating intelligent machines, ML is specifically interested in how machines learn from data to improve their performance.",
+      "model_info": {
+        "name": "llama-3.1-8b-instant",
+        "provider": "groq",
+        "temperature": 0
+      },
+      "strategy": "zero_shot"
+    },
+    "parser_zero": {
+      "input": "The difference between AI (Artificial Intelligence) and Machine Learning (ML) is mainly a matter of scope and complexity:\n\n- **Artificial Intelligence (AI)**: AI is a broader field that focuses on creating intelligent machines that can think, learn, and behave like humans. It involves the development of algorithms and systems that can perform various tasks, such as decision-making, problem-solving, and reasoning. AI aims to create machines that can understand natural language, perceive their environment, and interact with humans in a more human-like way.\n\n- **Machine Learning (ML)**: ML is a subset of AI that focuses on the development of algorithms and statistical models that enable machines to learn from data, identify patterns, and make predictions or decisions. ML involves training machines on large datasets to improve their performance on specific tasks, such as image recognition, text classification, or speech recognition.\n\nIn other words, AI is the overarching field that includes ML, and ML is a key technique used to achieve AI's goals. While AI is interested in creating intelligent machines, ML is specifically interested in how machines learn from data to improve their performance.",
+      "output": "The difference between AI (Artificial Intelligence) and Machine Learning (ML) is mainly a matter of scope and complexity:\n\n- **Artificial Intelligence (AI)**: AI is a broader field that focuses on creating intelligent machines that can think, learn, and behave like humans. It involves the development of algorithms and systems that can perform various tasks, such as decision-making, problem-solving, and reasoning. AI aims to create machines that can understand natural language, perceive their environment, and interact with humans in a more human-like way.\n\n- **Machine Learning (ML)**: ML is a subset of AI that focuses on the development of algorithms and statistical models that enable machines to learn from data, identify patterns, and make predictions or decisions. ML involves training machines on large datasets to improve their performance on specific tasks, such as image recognition, text classification, or speech recognition.\n\nIn other words, AI is the overarching field that includes ML, and ML is a key technique used to achieve AI's goals. While AI is interested in creating intelligent machines, ML is specifically interested in how machines learn from data to improve their performance.",
+      "parser_type": "string",
+      "strategy": "zero_shot",
+      "processing_notes": "Processed zero-shot strategy output"
+    },
+    "few_shot": {
+      "template": "Examples of good answers:\nQ: What is artificial intelligence?\nA: Artificial intelligence (AI) is a field of computer science focused on creating systems that can perform tasks typically requiring human intelligence, such as learning, reasoning, and problem-solving.\n\nQ: What is deep learning?\nA: Deep learning is a subset of machine learning that uses neural networks with multiple layers to learn complex patterns in large amounts of data.\n\nQ: {question}\nA:",
+      "input_variables": [
+        "question"
+      ],
+      "resolved_prompt": "Examples of good answers:\nQ: What is artificial intelligence?\nA: Artificial intelligence (AI) is a field of computer science focused on creating systems that can perform tasks typically requiring human intelligence, such as learning, reasoning, and problem-solving.\n\nQ: What is deep learning?\nA: Deep learning is a subset of machine learning that uses neural networks with multiple layers to learn complex patterns in large amounts of data.\n\nQ: What is the difference between AI and machine learning?\nA:",
+      "strategy_type": "few_shot",
+      "user_input": "What is the difference between AI and machine learning?"
+    },
+    "llm_few": {
+      "input": "Examples of good answers:\nQ: What is artificial intelligence?\nA: Artificial intelligence (AI) is a field of computer science focused on creating systems that can perform tasks typically requiring human intelligence, such as learning, reasoning, and problem-solving.\n\nQ: What is deep learning?\nA: Deep learning is a subset of machine learning that uses neural networks with multiple layers to learn complex patterns in large amounts of data.\n\nQ: What is the difference between AI and machine learning?\nA:",
+      "output": "A: The difference between AI and machine learning lies in their scope and functionality. Artificial intelligence (AI) is a broader field that focuses on creating systems that can perform tasks typically requiring human intelligence, such as learning, reasoning, and problem-solving. Machine learning, on the other hand, is a subset of AI that involves training algorithms to learn from data and make predictions or decisions without being explicitly programmed.\n\nTo put it simply, AI is the parent field, and machine learning is a key technology used within AI to enable systems to learn from data.",
+      "model_info": {
+        "name": "llama-3.1-8b-instant",
+        "provider": "groq",
+        "temperature": 0
+      },
+      "strategy": "few_shot"
+    },
+    "parser_few": {
+      "input": "A: The difference between AI and machine learning lies in their scope and functionality. Artificial intelligence (AI) is a broader field that focuses on creating systems that can perform tasks typically requiring human intelligence, such as learning, reasoning, and problem-solving. Machine learning, on the other hand, is a subset of AI that involves training algorithms to learn from data and make predictions or decisions without being explicitly programmed.\n\nTo put it simply, AI is the parent field, and machine learning is a key technology used within AI to enable systems to learn from data.",
+      "output": "A: The difference between AI and machine learning lies in their scope and functionality. Artificial intelligence (AI) is a broader field that focuses on creating systems that can perform tasks typically requiring human intelligence, such as learning, reasoning, and problem-solving. Machine learning, on the other hand, is a subset of AI that involves training algorithms to learn from data and make predictions or decisions without being explicitly programmed.\n\nTo put it simply, AI is the parent field, and machine learning is a key technology used within AI to enable systems to learn from data.",
+      "parser_type": "string",
+      "strategy": "few_shot",
+      "processing_notes": "Processed few-shot strategy output"
+    },
+    "cot": {
+      "template": "Think step by step to answer this question: {question}\n\nLet me break this down:",
+      "input_variables": [
+        "question"
+      ],
+      "resolved_prompt": "Think step by step to answer this question: What is the difference between AI and machine learning?\n\nLet me break this down:",
+      "strategy_type": "cot",
+      "user_input": "What is the difference between AI and machine learning?"
+    },
+    "llm_cot": {
+      "input": "Think step by step to answer this question: What is the difference between AI and machine learning?\n\nLet me break this down:",
+      "output": "I'll help you break it down step by step to understand the difference between AI and machine learning.\n\n1. Start by defining Artificial Intelligence (AI): \nArtificial Intelligence is a broad field of computer science that focuses on creating intelligent machines capable of performing tasks that would typically require human intelligence, such as visual perception, speech recognition, decision-making, and problem-solving.\n\n2. Next, define Machine Learning:\nMachine Learning is a subset of AI that concerns the development of algorithms and statistical models that enable computers to learn from experience and improve their performance on a given task without being explicitly programmed.\n\n3. Consider the relationship between AI and machine learning:\nMachine Learning is a key technology that enables the creation of intelligent machines mentioned in the definition of AI. Machine Learning is a fundamental component of AI, but not all AI uses machine learning.\n\n4. Identify the key aspects of AI that are not necessarily related to machine learning:\nSome AI systems rely on rule-based systems, knowledge representation, and logical reasoning to perform tasks, rather than machine learning.\n\n5. Consider the differences in approach:\nAI often involves designing systems from scratch to achieve a specific goal, whereas machine learning typically involves training models on existing data to achieve a specific outcome.\n\n6. Consider the complexity and scope:\nAI can encompass a wide range of disciplines, including machine learning, but it can also involve human-computer interaction, robotics, natural language processing, and more.\n\n7. Finally, consider the goal:\nThe primary goal of AI is to create intelligent machines, while the primary goal of machine learning is to develop algorithms and models that enable computers to learn from data.\n\nIn summary, AI is a broader field that encompasses various disciplines and goals, including machine learning, while machine learning is a fundamental component of AI that focuses on the development of algorithms and statistical models to enable computers to learn from experience.",
+      "model_info": {
+        "name": "llama-3.1-8b-instant",
+        "provider": "groq",
+        "temperature": 0
+      },
+      "strategy": "cot"
+    },
+    "parser_cot": {
+      "input": "I'll help you break it down step by step to understand the difference between AI and machine learning.\n\n1. Start by defining Artificial Intelligence (AI): \nArtificial Intelligence is a broad field of computer science that focuses on creating intelligent machines capable of performing tasks that would typically require human intelligence, such as visual perception, speech recognition, decision-making, and problem-solving.\n\n2. Next, define Machine Learning:\nMachine Learning is a subset of AI that concerns the development of algorithms and statistical models that enable computers to learn from experience and improve their performance on a given task without being explicitly programmed.\n\n3. Consider the relationship between AI and machine learning:\nMachine Learning is a key technology that enables the creation of intelligent machines mentioned in the definition of AI. Machine Learning is a fundamental component of AI, but not all AI uses machine learning.\n\n4. Identify the key aspects of AI that are not necessarily related to machine learning:\nSome AI systems rely on rule-based systems, knowledge representation, and logical reasoning to perform tasks, rather than machine learning.\n\n5. Consider the differences in approach:\nAI often involves designing systems from scratch to achieve a specific goal, whereas machine learning typically involves training models on existing data to achieve a specific outcome.\n\n6. Consider the complexity and scope:\nAI can encompass a wide range of disciplines, including machine learning, but it can also involve human-computer interaction, robotics, natural language processing, and more.\n\n7. Finally, consider the goal:\nThe primary goal of AI is to create intelligent machines, while the primary goal of machine learning is to develop algorithms and models that enable computers to learn from data.\n\nIn summary, AI is a broader field that encompasses various disciplines and goals, including machine learning, while machine learning is a fundamental component of AI that focuses on the development of algorithms and statistical models to enable computers to learn from experience.",
+      "output": "I'll help you break it down step by step to understand the difference between AI and machine learning.\n\n1. Start by defining Artificial Intelligence (AI): \nArtificial Intelligence is a broad field of computer science that focuses on creating intelligent machines capable of performing tasks that would typically require human intelligence, such as visual perception, speech recognition, decision-making, and problem-solving.\n\n2. Next, define Machine Learning:\nMachine Learning is a subset of AI that concerns the development of algorithms and statistical models that enable computers to learn from experience and improve their performance on a given task without being explicitly programmed.\n\n3. Consider the relationship between AI and machine learning:\nMachine Learning is a key technology that enables the creation of intelligent machines mentioned in the definition of AI. Machine Learning is a fundamental component of AI, but not all AI uses machine learning.\n\n4. Identify the key aspects of AI that are not necessarily related to machine learning:\nSome AI systems rely on rule-based systems, knowledge representation, and logical reasoning to perform tasks, rather than machine learning.\n\n5. Consider the differences in approach:\nAI often involves designing systems from scratch to achieve a specific goal, whereas machine learning typically involves training models on existing data to achieve a specific outcome.\n\n6. Consider the complexity and scope:\nAI can encompass a wide range of disciplines, including machine learning, but it can also involve human-computer interaction, robotics, natural language processing, and more.\n\n7. Finally, consider the goal:\nThe primary goal of AI is to create intelligent machines, while the primary goal of machine learning is to develop algorithms and models that enable computers to learn from data.\n\nIn summary, AI is a broader field that encompasses various disciplines and goals, including machine learning, while machine learning is a fundamental component of AI that focuses on the development of algorithms and statistical models to enable computers to learn from experience.",
+      "parser_type": "string",
+      "strategy": "cot",
+      "processing_notes": "Processed chain-of-thought strategy output"
+    }
+  },
+  "styles": {}
+}

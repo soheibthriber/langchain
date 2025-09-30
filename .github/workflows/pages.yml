@@ -47,6 +47,12 @@ jobs:
         run: |
           python lessons/01_hello_chain/code.py --text "Deploy preview: neural networks in one sentence"
 
+      - name: Generate latest graph (Lesson 2) 
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          python lessons/02_prompt_patterns/code.py --text "Deploy preview: What are the main differences between supervised and unsupervised learning?"
+
       - name: Install viewer deps
         working-directory: viewer
         run: |
@@ -54,12 +60,16 @@ jobs:
 
       - name: Copy lesson artifacts to viewer
         run: |
-          cp lessons/01_hello_chain/graph.json viewer/public/graph.json || mkdir -p viewer/public && cp lessons/01_hello_chain/graph.json viewer/public/graph.json
+          mkdir -p viewer/public/lessons
+          cp lessons/01_hello_chain/graph.json viewer/public/lessons/01_hello_chain.json
+          cp lessons/02_prompt_patterns/graph.json viewer/public/lessons/02_prompt_patterns.json
+          # Create a lessons manifest for static deployment
+          echo '{"lessons":[{"id":"01_hello_chain","lesson_id":"01_hello_chain","title":"Hello Chain"},{"id":"02_prompt_patterns","lesson_id":"02_prompt_patterns","title":"Prompt Patterns"}]}' > viewer/public/lessons/index.json
 
       - name: Build viewer (static)
         working-directory: viewer
         env:
-          # Static Pages build has no API; the app will load public/graph.json
+          # Static Pages build has no API; the app will load lessons from public/lessons/
           VITE_API_BASE_URL: ""
         run: npm run build
 
