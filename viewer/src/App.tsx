@@ -1,11 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import ReactFlow, {
   MiniMap,
   Controls,
   Background,
   useNodesState,
   useEdgesState,
-  Panel,
   Node,
   Edge,
   NodeTypes,
@@ -21,127 +20,122 @@ const App: React.FC = () => {
   // Base URLs from Vite. In production, BASE_URL is '/langchain/' for GH Pages.
   const isDev: boolean = !!(import.meta as any).env?.DEV;
   const API_BASE: string = (import.meta as any).env?.VITE_API_BASE_URL || '';
-  const PUBLIC_BASE: string = (import.meta as any).env?.BASE_URL || '/';
-  const preferApi = isDev || (typeof API_BASE === 'string' && API_BASE.length > 0);
   const apiPrefix = API_BASE || '';
   
   // Lesson state
   const [currentLesson, setCurrentLesson] = useState('01_hello_chain');
+  const [availableLessons, setAvailableLessons] = useState<Array<{
+    id: string;
+    lesson_id: string;
+    title: string;
+    latency_ms?: number;
+    events_count?: number;
+    created_at?: string;
+  }>>([]);
+  const [isPanelMinimized, setIsPanelMinimized] = useState(false);
   
   // Start empty; populate from API (Load Sample)
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
 
-  const onSelectionChange = useCallback(({ nodes }: OnSelectionChangeParams) => {
-    setSelectedNode(nodes.length > 0 ? nodes[0] : null);
-  }, []);
-
-  const loadSampleData = useCallback(async () => {
-    try {
-      // Prefer API in dev; fallback to static if unavailable
-      const fetchApi = async () => {
-        const res = await fetch(`${apiPrefix}/api/runs/${currentLesson}/latest`);
-        if (!res.ok) throw new Error(String(res.status));
-        return res.json();
-      };
-      const fetchStatic = async () => {
-        const res = await fetch(`${PUBLIC_BASE}graph.json`);
-        if (!res.ok) throw new Error(String(res.status));
-        return res.json();
-      };
-      let data: any;
+  // Load available lessons on component mount
+  useEffect(() => {
+    const fetchLessons = async () => {
       try {
-        data = preferApi ? await fetchApi() : await fetchStatic();
-      } catch {
-        data = preferApi ? await fetchStatic() : await fetchApi();
+        const baseUrl = isDev ? '' : apiPrefix;
+        const response = await fetch(`${baseUrl}/api/lessons`);
+        if (response.ok) {
+          const data = await response.json();
+          const lessonList = data.lessons.map((lesson: any) => ({
+            id: lesson.id || lesson.lesson_id,
+            lesson_id: lesson.lesson_id,
+            title: formatLessonTitle(lesson.lesson_id),
+            latency_ms: lesson.latency_ms,
+            events_count: lesson.events_count,
+            created_at: lesson.created_at
+          }));
+          // Sort lessons by lesson_id to ensure proper order (01_hello_chain before 02_prompt_patterns)
+          lessonList.sort((a: any, b: any) => a.lesson_id.localeCompare(b.lesson_id));
+          setAvailableLessons(lessonList);
+        }
+      } catch (error) {
+        console.error('Failed to fetch lessons:', error);
+        // Fallback to default lessons in correct order
+        setAvailableLessons([
+          { id: '01_hello_chain', lesson_id: '01_hello_chain', title: 'Hello Chain' },
+          { id: '02_prompt_patterns', lesson_id: '02_prompt_patterns', title: 'Prompt Patterns' }
+        ]);
       }
+    };
+    
+    fetchLessons();
+  }, [isDev, apiPrefix]);
+
+  // Helper function to format lesson titles
+  const formatLessonTitle = (lessonId: string) => {
+    return lessonId
+      .replace(/_/g, ' ')
+      .replace(/^\d+\s*/, '')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Auto-load lesson data when lesson changes
+  const loadLessonData = useCallback(async (lessonId: string) => {
+    try {
+      // In dev mode, use proxy; in production use API_BASE
+      const baseUrl = isDev ? '' : apiPrefix;
+      const url = `${baseUrl}/api/runs/${lessonId}/latest`;
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
         
-        // Helpers: normalize node type to renderer keys
-        const normalizeType = (t: string): string => {
-          const map: Record<string, string> = {
-            // prompts
-            prompt: 'promptTemplate',
-            PromptTemplate: 'promptTemplate',
-            promptTemplate: 'promptTemplate',
-            // llms
-            llm: 'llm',
-            chatModel: 'llm',
-            ChatOpenAI: 'llm',
-            ChatAnthropic: 'llm',
-            // Prefer real providers
-            Groq: 'llm',
-            // parsers
-            parser: 'parser',
-            StrOutputParser: 'parser',
-          };
-          return map[t] || t;
+        // Normalization logic (copied from loadSampleData)
+        const normalizeType = (type: string): string => {
+          const lowerType = type.toLowerCase();
+          if (lowerType.includes('prompt')) return 'promptTemplate';
+          if (lowerType.includes('llm') || lowerType.includes('chat') || lowerType.includes('groq') || lowerType.includes('openai') || lowerType.includes('anthropic')) return 'llm';
+          if (lowerType.includes('parser')) return 'parser';
+          return 'unknown';
         };
 
-        // Helpers: build execution artifacts per node across v1.1 and v1.2
-        const version = data?.metadata?.version || '1.1';
-        const events: any[] = Array.isArray(data?.events) ? data.events : [];
-        const artifactsRoot = data?.artifacts || {};
-
-        const findEvent = (nodeId: string, kind: 'invoke_start' | 'invoke_end') =>
-          events.find(e => e.node_id === nodeId || e.nodeId === nodeId && (kind ? e.kind === kind : true));
-
+        // Build node artifacts helper
         const buildNodeArtifacts = (node: any) => {
-          const t = node.type;
+          const events: any[] = data.events || [];
+          const artifacts: any = data.artifacts || {}; // artifacts is an object, not array
           const id = node.id;
-          // v1.1 direct mapping by id keys
-          if (version === '1.1') {
-            if (id === 'prompt' || t === 'promptTemplate' || t === 'PromptTemplate') {
-              const a = artifactsRoot.prompt || {};
-              return {
-                template: a.prompt || node?.data?.template,
-                input_variables: a.input_variables,
-                resolved_prompt: a.resolved_prompt,
-              };
-            }
-            if (id === 'llm' || t === 'chatModel' || t === 'llm') {
-              const a = artifactsRoot.llm || {};
-              return {
-                input: a.input,
-                output: a.output,
-                model_info: a.model_info,
-              };
-            }
-            if (id === 'parser' || t === 'parser' || t === 'StrOutputParser') {
-              const a = artifactsRoot.parser || {};
-              return {
-                input: a.input,
-                output: a.output,
-                parser_type: a.parser_type,
-              };
-            }
-            return {};
-          }
-          // v1.2 mapping via named artifacts + node snapshot
-          // Prompt
-          if (t === 'PromptTemplate') {
+          const findEvent = (nodeId: string, eventType: string) => 
+            events.find(e => e.node_id === nodeId && e.event_type === eventType);
+          const artifactsRoot = artifacts[id]; // Use object access instead of find
+          const t = node.type;
+          
+          // PromptTemplate
+          if (t === 'PromptTemplate' || t === 'promptTemplate' || t === 'prompt') {
+            const start = findEvent(id, 'invoke_start');
             return {
-              template: node?.configuration?.template || node?.template_preview,
-              input_variables: node?.configuration?.input_variables,
-              resolved_prompt: artifactsRoot?.formatted_prompt?.content,
+              input: start?.input_preview,
+              output: artifactsRoot?.resolved_prompt,
+              template: node?.configuration?.template || artifactsRoot?.prompt,
             };
           }
           // LLM
           if (t === 'ChatOpenAI' || t === 'ChatAnthropic' || t === 'Groq' || t === 'llm' || t === 'chatModel') {
             const start = findEvent(id, 'invoke_start');
             return {
-              input: start?.input_preview || artifactsRoot?.formatted_prompt?.content,
-              output: artifactsRoot?.llm_output?.content,
-              model_info: { name: node?.configuration?.model || node?.label },
+              input: start?.input_preview || artifactsRoot?.input,
+              output: artifactsRoot?.output,
+              model_info: artifactsRoot?.model_info || { name: node?.configuration?.model || node?.label },
             };
           }
           // Parser
           if (t === 'StrOutputParser' || t === 'parser') {
             const start = findEvent(id, 'invoke_start');
             return {
-              input: start?.input_preview || artifactsRoot?.llm_output?.content,
-              output: artifactsRoot?.final_output?.content,
-              parser_type: 'string',
+              input: start?.input_preview || artifactsRoot?.input,
+              output: artifactsRoot?.output,
+              parser_type: artifactsRoot?.parser_type || 'string',
             };
           }
           return {};
@@ -149,7 +143,6 @@ const App: React.FC = () => {
 
         // Convert to ReactFlow nodes
         const reactFlowNodes: Node[] = data.nodes.map((node: any, index: number) => {
-          // Normalize by type first, then fall back to heuristics (id/label/data)
           let normalizedType = normalizeType(node.type);
           if (!normalizedType || normalizedType === 'unknown') {
             const label: string = node.label || '';
@@ -187,109 +180,121 @@ const App: React.FC = () => {
 
         setNodes(reactFlowNodes);
         setEdges(reactFlowEdges);
-        
-    console.log('Loaded GraphJSON data:', data);
+      } else {
+        console.error('Failed to load lesson data:', response.status);
+      }
     } catch (error) {
-      console.warn('Load sample failed:', error);
+      console.error('Error loading lesson data:', error);
     }
-  }, [setNodes, setEdges, API_BASE, PUBLIC_BASE, preferApi, apiPrefix, currentLesson]);
+  }, [isDev, apiPrefix, setNodes, setEdges]);
 
-  const runLesson = useCallback(async () => {
-    try {
-  if (!preferApi) {
-        // Static mode: no API. Just load the sample graph from the static file.
-        await loadSampleData();
-        return;
-      }
-        const response = await fetch(`${apiPrefix}/api/run/${currentLesson}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'Explain how neural networks learn from data' }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        // Reuse the same mapping logic by faking a minimal GraphJSON container if needed
-        const graph = data?.nodes ? data : { ...data };
-
-        const normalizeType = (t: string): string => {
-          const map: Record<string, string> = {
-            prompt: 'promptTemplate',
-            PromptTemplate: 'promptTemplate',
-            promptTemplate: 'promptTemplate',
-            llm: 'llm',
-            chatModel: 'llm',
-            ChatOpenAI: 'llm',
-            ChatAnthropic: 'llm',
-            Groq: 'llm',
-            parser: 'parser',
-            StrOutputParser: 'parser',
-          };
-          return map[t] || t;
-        };
-
-  const version = graph?.metadata?.version || '1.1';
-        const artifactsRoot = graph?.artifacts || {};
-        const buildNodeArtifacts = (node: any) => {
-          const t = node.type;
-          const id = node.id;
-          if (version === '1.1') {
-            if (id === 'prompt' || t === 'promptTemplate' || t === 'PromptTemplate') {
-              const a = artifactsRoot.prompt || {};
-              return { template: a.prompt || node?.data?.template, input_variables: a.input_variables, resolved_prompt: a.resolved_prompt };
-            }
-            if (id === 'llm' || t === 'chatModel' || t === 'llm') {
-              const a = artifactsRoot.llm || {};
-              return { input: a.input, output: a.output, model_info: a.model_info };
-            }
-            if (id === 'parser' || t === 'parser' || t === 'StrOutputParser') {
-              const a = artifactsRoot.parser || {};
-              return { input: a.input, output: a.output, parser_type: a.parser_type };
-            }
-          }
-          return {};
-        };
-
-        const reactFlowNodes: Node[] = graph.nodes.map((node: any, index: number) => {
-          let normalizedType = normalizeType(node.type);
-          if (!normalizedType || normalizedType === 'unknown') {
-            const label: string = node.label || '';
-            const provider: string | undefined = node?.data?.provider;
-            const modelType: string | undefined = node?.data?.model_type;
-            if (node.id === 'llm' || /^(Groq:|ChatOpenAI:|Anthropic:|OpenAI:)/.test(label) || modelType === 'chat' || provider) {
-              normalizedType = 'llm';
-            } else if (node.id === 'prompt') {
-              normalizedType = 'promptTemplate';
-            } else if (node.id === 'parser') {
-              normalizedType = 'parser';
-            }
-          }
-          const execArtifacts = buildNodeArtifacts(node);
-          return {
-            id: node.id,
-            type: normalizedType,
-            position: { x: 120 + (index * 240), y: 180 },
-            data: { label: node.label, type: normalizedType, nodeData: node, artifacts: execArtifacts },
-          } as Node;
-        });
-        const reactFlowEdges: Edge[] = graph.edges.map((edge: any) => ({
-          id: edge.id,
-          source: typeof edge.source === 'string' ? edge.source : edge.source.nodeId,
-          target: typeof edge.target === 'string' ? edge.target : edge.target.nodeId,
-          animated: true,
-          label: edge.label || ''
-        }));
-        setNodes(reactFlowNodes);
-        setEdges(reactFlowEdges);
-      }
-    } catch (e) {
-      console.warn('Run lesson failed:', e);
-      await loadSampleData();
+  // Load lesson data when currentLesson changes
+  useEffect(() => {
+    if (currentLesson) {
+      loadLessonData(currentLesson);
     }
-  }, [setNodes, setEdges, API_BASE, apiPrefix, preferApi, loadSampleData, currentLesson]);
+  }, [currentLesson, loadLessonData]);
+
+  const onSelectionChange = useCallback(({ nodes }: OnSelectionChangeParams) => {
+    setSelectedNode(nodes.length > 0 ? nodes[0] : null);
+  }, []);
 
   return (
     <div className="w-full h-screen flex">
-      <div className="flex-1 relative">
+      {/* Fixed Left Panel */}
+      <div className={`
+        fixed top-0 left-0 h-full bg-white border-r border-gray-200 shadow-lg z-10 transition-all duration-300
+        ${isPanelMinimized ? 'w-12' : 'w-80'}
+      `}>
+        {/* Header with minimize toggle */}
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          {!isPanelMinimized && (
+            <h1 className="text-lg font-bold text-gray-800 flex items-center">
+              <span className="mr-2">🔗</span>
+              LangChain Lessons
+            </h1>
+          )}
+          <button
+            onClick={() => setIsPanelMinimized(!isPanelMinimized)}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            title={isPanelMinimized ? 'Expand panel' : 'Minimize panel'}
+          >
+            {isPanelMinimized ? '▶️' : '◀️'}
+          </button>
+        </div>
+
+        {/* Panel Content */}
+        {!isPanelMinimized && (
+          <div className="p-4 overflow-y-auto h-[calc(100vh-80px)]">
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600">
+                Professional node design system showcasing different LangChain component types
+              </div>
+              
+              {/* Lesson Chapters */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Available Lessons:</label>
+                <div className="space-y-1">
+                  {availableLessons.map((lesson, index) => (
+                    <div
+                      key={lesson.id}
+                      onClick={() => setCurrentLesson(lesson.lesson_id)}
+                      className={`
+                        p-3 rounded-lg border cursor-pointer transition-all duration-200
+                        ${currentLesson === lesson.lesson_id 
+                          ? 'bg-indigo-50 border-indigo-300 shadow-sm' 
+                          : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`
+                            w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                            ${currentLesson === lesson.lesson_id 
+                              ? 'bg-indigo-600 text-white' 
+                              : 'bg-gray-200 text-gray-600'
+                            }
+                          `}>
+                            {index + 1}
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900 text-sm">
+                              {lesson.title}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {lesson.lesson_id}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          {lesson.events_count && (
+                            <div className="text-xs text-gray-500">
+                              {lesson.events_count} events
+                            </div>
+                          )}
+                          {lesson.latency_ms && (
+                            <div className="text-xs text-gray-400">
+                              {lesson.latency_ms}ms
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-500 pt-2 border-t">
+                {nodes.length} nodes • {edges.length} connections
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content Area */}
+      <div className={`flex-1 transition-all duration-300 ${isPanelMinimized ? 'ml-12' : 'ml-80'}`}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -304,47 +309,6 @@ const App: React.FC = () => {
           <Controls />
           <MiniMap />
           <Background gap={12} size={1} />
-          
-          <Panel position="top-left">
-            <div className="bg-white p-4 rounded-lg shadow-lg border space-y-3 max-w-xs">
-              <h1 className="text-xl font-bold text-gray-800 flex items-center">
-                <span className="mr-2">🔗</span>
-                LangChain Visualizer
-              </h1>
-              <div className="text-sm text-gray-600 mb-2">
-                Professional node design system showcasing different LangChain component types
-              </div>
-              
-              {/* Lesson Selector */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Select Lesson:</label>
-                <select
-                  value={currentLesson}
-                  onChange={(e) => setCurrentLesson(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="01_hello_chain">Lesson 1: Hello Chain</option>
-                  <option value="02_prompt_patterns">Lesson 2: Prompt Patterns</option>
-                </select>
-              </div>
-
-              <button
-                onClick={loadSampleData}
-                className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
-              >
-                📊 Load Sample ({currentLesson === '01_hello_chain' ? 'Lesson 1' : 'Lesson 2'})
-              </button>
-              <button
-                onClick={runLesson}
-                className="w-full mt-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium text-sm"
-              >
-                ▶️ Run {currentLesson === '01_hello_chain' ? 'Lesson 1' : 'Lesson 2'} (Groq)
-              </button>
-              <div className="text-xs text-gray-500 pt-2 border-t">
-                {nodes.length} nodes • {edges.length} connections
-              </div>
-            </div>
-          </Panel>
         </ReactFlow>
       </div>
 
