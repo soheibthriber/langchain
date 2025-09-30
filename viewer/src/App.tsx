@@ -13,6 +13,131 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { specializedNodeTypes } from './components/SpecializedNodes';
 
+// Auto layout function for intelligent node positioning
+const applyAutoLayout = (nodes: Node[], edges: Edge[]): Node[] => {
+  // Create adjacency map to understand the graph structure
+  const adjacencyMap = new Map<string, { incoming: string[], outgoing: string[] }>();
+  
+  // Initialize adjacency data
+  nodes.forEach(node => {
+    adjacencyMap.set(node.id, { incoming: [], outgoing: [] });
+  });
+  
+  // Build adjacency relationships
+  edges.forEach(edge => {
+    const sourceAdj = adjacencyMap.get(edge.source);
+    const targetAdj = adjacencyMap.get(edge.target);
+    if (sourceAdj) sourceAdj.outgoing.push(edge.target);
+    if (targetAdj) targetAdj.incoming.push(edge.source);
+  });
+  
+  // Find root nodes (no incoming edges) and group them by chains
+  const rootNodes = nodes.filter(node => {
+    const adj = adjacencyMap.get(node.id);
+    return adj && adj.incoming.length === 0;
+  });
+  
+  // If we have multiple root nodes, it's likely multiple chains (like lesson 2)
+  const chains: Node[][] = [];
+  const visited = new Set<string>();
+  
+  // Build each chain starting from root nodes
+  rootNodes.forEach(rootNode => {
+    if (visited.has(rootNode.id)) return;
+    
+    const chain: Node[] = [];
+    const queue = [rootNode];
+    
+    while (queue.length > 0) {
+      const currentNode = queue.shift()!;
+      if (visited.has(currentNode.id)) continue;
+      
+      visited.add(currentNode.id);
+      chain.push(currentNode);
+      
+      // Add connected nodes to queue
+      const adj = adjacencyMap.get(currentNode.id);
+      if (adj) {
+        adj.outgoing.forEach(targetId => {
+          const targetNode = nodes.find(n => n.id === targetId);
+          if (targetNode && !visited.has(targetId)) {
+            queue.push(targetNode);
+          }
+        });
+      }
+    }
+    
+    if (chain.length > 0) {
+      chains.push(chain);
+    }
+  });
+  
+  // Handle any remaining unvisited nodes (isolated nodes)
+  nodes.forEach(node => {
+    if (!visited.has(node.id)) {
+      chains.push([node]);
+    }
+  });
+  
+  // Node size estimation based on node type and content
+  const estimateNodeSize = (node: Node): { width: number; height: number } => {
+    const baseWidth = 220; // From SpecializedNodes maxWidth
+    const baseHeight = 120; // Base height
+    
+    // Add height for artifacts content
+    let additionalHeight = 0;
+    if (node.data.artifacts) {
+      const artifacts = node.data.artifacts;
+      
+      // Add height for each artifact section that would be displayed
+      if (artifacts.prompt || artifacts.template) additionalHeight += 60;
+      if (artifacts.resolved_prompt) additionalHeight += 60;
+      if (artifacts.input_variables?.length > 0) additionalHeight += 30;
+      if (artifacts.input) additionalHeight += 60;
+      if (artifacts.output) {
+        // More height for longer outputs
+        const outputLength = typeof artifacts.output === 'string' ? artifacts.output.length : 0;
+        additionalHeight += Math.min(100, Math.max(60, outputLength / 10));
+      }
+      if (artifacts.model_info || artifacts.parser_type) additionalHeight += 30;
+    }
+    
+    return {
+      width: baseWidth,
+      height: Math.min(300, baseHeight + additionalHeight) // Cap max height
+    };
+  };
+  
+  // Position nodes with dynamic spacing
+  const horizontalSpacing = 280; // Space between nodes in same chain
+  const verticalMargin = 50; // Margin between chains
+  const startX = 120;
+  const startY = 100;
+  
+  const positionedNodes = [...nodes];
+  let currentY = startY;
+  
+  chains.forEach((chain) => {
+    // Calculate the max height for this chain
+    const chainMaxHeight = Math.max(...chain.map(node => estimateNodeSize(node).height));
+    
+    chain.forEach((node, nodeIndex) => {
+      const nodeToUpdate = positionedNodes.find(n => n.id === node.id);
+      if (nodeToUpdate) {
+        nodeToUpdate.position = {
+          x: startX + (nodeIndex * horizontalSpacing),
+          y: currentY
+        };
+      }
+    });
+    
+    // Move to next chain position with proper margin
+    currentY += chainMaxHeight + verticalMargin;
+  });
+  
+  return positionedNodes;
+};
+
 // Register specialized node renderers that can show execution data
 const nodeTypes: NodeTypes = specializedNodeTypes as unknown as NodeTypes;
 
@@ -141,8 +266,8 @@ const App: React.FC = () => {
           return {};
         };
 
-        // Convert to ReactFlow nodes
-        const reactFlowNodes: Node[] = data.nodes.map((node: any, index: number) => {
+        // Convert to ReactFlow nodes with intelligent positioning
+        const reactFlowNodes: Node[] = data.nodes.map((node: any) => {
           let normalizedType = normalizeType(node.type);
           if (!normalizedType || normalizedType === 'unknown') {
             const label: string = node.label || '';
@@ -160,7 +285,7 @@ const App: React.FC = () => {
           return {
             id: node.id,
             type: normalizedType,
-            position: { x: 120 + (index * 240), y: 180 },
+            position: { x: 0, y: 0 }, // Will be calculated by layout function
             data: {
               label: node.label,
               type: normalizedType,
@@ -178,7 +303,10 @@ const App: React.FC = () => {
           label: edge.label || ''
         }));
 
-        setNodes(reactFlowNodes);
+        // Apply intelligent layout
+        const layoutedNodes = applyAutoLayout(reactFlowNodes, reactFlowEdges);
+
+        setNodes(layoutedNodes);
         setEdges(reactFlowEdges);
       } else {
         console.error('Failed to load lesson data:', response.status);
