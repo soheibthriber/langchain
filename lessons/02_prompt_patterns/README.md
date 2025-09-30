@@ -14,21 +14,33 @@ This lesson explores three fundamental prompting strategies and compares their e
 ## Visual Flow Diagram
 
 ```
-[Question] → [Zero-Shot Prompt] ↘
-[Question] → [Few-Shot Prompt]  → [LLM] → [Parser] → [Results]
-[Question] → [CoT Prompt]      ↗
+[Question] → [Zero-Shot Prompt] → [LLM Zero] → [Parser Zero] → [Zero-Shot Result]
+
+[Question] → [Few-Shot Prompt] → [LLM Few] → [Parser Few] → [Few-Shot Result]
+
+[Question] → [CoT Prompt] → [LLM CoT] → [Parser CoT] → [CoT Result]
 ```
 
-**Nodes:**
+**Three Independent Chains:**
+
+**Chain 1 - Zero-Shot Strategy:**
 - **Zero-Shot Prompt** (`promptTemplate`): Direct question without examples
-- **Few-Shot Prompt** (`promptTemplate`): Question with examples 
-- **Chain-of-Thought** (`promptTemplate`): Question with reasoning instructions
-- **LLM** (`llm`): Groq model processes all three strategies
-- **Parser** (`parser`): Clean string output
+- **LLM Zero** (`llm`): Dedicated model instance for zero-shot processing
+- **Parser Zero** (`parser`): Clean zero-shot output
+
+**Chain 2 - Few-Shot Strategy:**
+- **Few-Shot Prompt** (`promptTemplate`): Question with examples
+- **LLM Few** (`llm`): Dedicated model instance for few-shot processing  
+- **Parser Few** (`parser`): Clean few-shot output
+
+**Chain 3 - Chain-of-Thought Strategy:**
+- **CoT Prompt** (`promptTemplate`): Question with reasoning instructions
+- **LLM CoT** (`llm`): Dedicated model instance for CoT processing
+- **Parser CoT** (`parser`): Clean CoT output
 
 **Edges:**
-- All prompts → LLM: Different strategy inputs
-- LLM → Parser: Combined outputs for comparison
+- Three independent flows: Prompt → LLM → Parser for each strategy
+- Parallel execution allows direct comparison of individual strategy results
 
 ## Prerequisites
 
@@ -76,22 +88,23 @@ python3 lessons/02_prompt_patterns/code.py --text "What is quantum computing?"
 
 ### graph.json (GraphJSON v1.1)
 
-Contains execution data for all three prompt strategies:
+Contains execution data for all three independent prompt strategies:
 
-- **Nodes**: Three prompt templates + LLM + parser
-- **Events**: Timing data for each strategy execution
+- **Nodes**: Three prompt templates + three LLMs + three parsers (9 total)
+- **Events**: Timing data for each strategy's complete chain execution
 - **Artifacts**: 
   - Each prompt: template, resolved prompt, strategy type
-  - LLM: inputs from all strategies, combined output, model info
-  - Parser: final processed results
+  - Each LLM: individual inputs, outputs, model info for each strategy
+  - Each parser: individual processed results for direct comparison
 
 ### Viewer Visualization
 
 In the course viewer, you'll see:
-- Three prompt nodes showing different templates
-- Runtime content: original templates and resolved prompts
-- LLM node displaying model info and combined processing
-- Clear flow showing how strategies feed into the same model
+- Three separate chains running in parallel
+- Each chain shows: Prompt → LLM → Parser flow
+- Runtime content for each individual strategy execution
+- Clear comparison of how each strategy processes the same question
+- Individual timing and output data for each approach
 
 ## Key Concepts
 

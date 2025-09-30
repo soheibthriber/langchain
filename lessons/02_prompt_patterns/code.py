@@ -1,8 +1,11 @@
 """
 Lesson 2 — Prompt Patterns (Zero-Shot, Few-Shot, Chain-of-Thought)
 
-This lesson demonstrates three fundamental prompting strategies and compares their effectiveness.
-It emits GraphJSON v1.1 with multiple prompt templates feeding into a single LLM.
+This lesson demonstrates three fundamental prompting strategies by creating three separate,
+parallel chains for pedagogical comparison. Each strategy gets its own complete chain:
+Prompt → LLM → Parser, making it easy to compare approaches and outputs.
+
+It emits GraphJSON v1.1 with three independent chains for educational visualization.
 
 Execution mode:
 - Groq (default): set GROQ_API_KEY
@@ -127,11 +130,15 @@ A:""")
         "Think step by step to answer this question: {question}\n\nLet me break this down:"
     )
     
-    # Step 2: Configure LLM
+    # Step 2: Configure LLM and parsers
     llm = setup_groq_llm()
-    parser = StrOutputParser()
     
-    # Step 3: Set up visual tracing
+    # Create separate parsers for each strategy to show individual outputs
+    zero_shot_parser = StrOutputParser()
+    few_shot_parser = StrOutputParser()
+    cot_parser = StrOutputParser()
+    
+    # Step 3: Set up visual tracing with separate chains
     tracer.node("zero_shot", "Zero-Shot Prompt", "promptTemplate",
                 data={
                     "strategy": "zero_shot",
@@ -156,51 +163,106 @@ A:""")
                 },
                 tags=["prompt", "chain-of-thought"])
     
-    tracer.node("llm", f"Groq:{llm.model}", "llm",
+    # Create separate LLM nodes for clarity (same model, different instances)
+    tracer.node("llm_zero", f"Groq:{llm.model}", "llm",
                 data={
                     "model": llm.model,
                     "temperature": llm.temperature,
                     "provider": "groq",
-                    "description": "Language model processing all three strategies",
-                    "model_type": "chat"
+                    "description": "Zero-shot strategy execution",
+                    "model_type": "chat",
+                    "strategy": "zero_shot"
                 },
-                tags=["core", "llm"])
+                tags=["core", "llm", "zero-shot"])
+                
+    tracer.node("llm_few", f"Groq:{llm.model}", "llm",
+                data={
+                    "model": llm.model,
+                    "temperature": llm.temperature,
+                    "provider": "groq",
+                    "description": "Few-shot strategy execution",
+                    "model_type": "chat",
+                    "strategy": "few_shot"
+                },
+                tags=["core", "llm", "few-shot"])
+                
+    tracer.node("llm_cot", f"Groq:{llm.model}", "llm",
+                data={
+                    "model": llm.model,
+                    "temperature": llm.temperature,
+                    "provider": "groq",
+                    "description": "Chain-of-thought strategy execution",
+                    "model_type": "chat",
+                    "strategy": "chain_of_thought"
+                },
+                tags=["core", "llm", "chain-of-thought"])
     
-    tracer.node("parser", "StrOutputParser", "parser",
+    tracer.node("parser_zero", "Zero-Shot Parser", "parser",
                 data={
                     "parser_type": "string",
-                    "description": "Ensures clean string output from all strategies"
+                    "description": "Processes zero-shot strategy output",
+                    "strategy": "zero_shot"
                 },
-                tags=["core", "output"])
+                tags=["core", "output", "zero-shot"])
+                
+    tracer.node("parser_few", "Few-Shot Parser", "parser",
+                data={
+                    "parser_type": "string",
+                    "description": "Processes few-shot strategy output",
+                    "strategy": "few_shot"
+                },
+                tags=["core", "output", "few-shot"])
+                
+    tracer.node("parser_cot", "Chain-of-Thought Parser", "parser",
+                data={
+                    "parser_type": "string",
+                    "description": "Processes chain-of-thought strategy output",
+                    "strategy": "chain_of_thought"
+                },
+                tags=["core", "output", "chain-of-thought"])
     
-    # Step 4: Add edges
-    tracer.edge("zero_shot", "llm", "zero-shot strategy")
-    tracer.edge("few_shot", "llm", "few-shot strategy") 
-    tracer.edge("cot", "llm", "chain-of-thought strategy")
-    tracer.edge("llm", "parser", "combined outputs")
+    # Step 4: Add edges for three separate chains
+    tracer.edge("zero_shot", "llm_zero", "zero-shot prompt")
+    tracer.edge("llm_zero", "parser_zero", "zero-shot response")
     
-    # Step 5: Create group
-    tracer.group("prompt_comparison", "Prompt Strategy Comparison",
-                 ["zero_shot", "few_shot", "cot", "llm", "parser"],
+    tracer.edge("few_shot", "llm_few", "few-shot prompt")
+    tracer.edge("llm_few", "parser_few", "few-shot response")
+    
+    tracer.edge("cot", "llm_cot", "chain-of-thought prompt")
+    tracer.edge("llm_cot", "parser_cot", "chain-of-thought response")
+    
+    # Step 5: Create separate groups for each strategy
+    tracer.group("zero_shot_chain", "Zero-Shot Strategy",
+                 ["zero_shot", "llm_zero", "parser_zero"],
+                 "chain", collapsed=False)
+                 
+    tracer.group("few_shot_chain", "Few-Shot Strategy",
+                 ["few_shot", "llm_few", "parser_few"],
+                 "chain", collapsed=False)
+                 
+    tracer.group("cot_chain", "Chain-of-Thought Strategy",
+                 ["cot", "llm_cot", "parser_cot"],
                  "chain", collapsed=False)
     
-    # Step 6: Execute and trace
+    # Step 6: Execute and trace three separate chains
     tracer.begin()
     
     strategies = [
-        ("zero_shot", zero_shot, "Zero-Shot"),
-        ("few_shot", few_shot, "Few-Shot"), 
-        ("cot", chain_of_thought, "Chain-of-Thought")
+        ("zero_shot", zero_shot, "Zero-Shot", "llm_zero", "parser_zero", zero_shot_parser),
+        ("few_shot", few_shot, "Few-Shot", "llm_few", "parser_few", few_shot_parser), 
+        ("cot", chain_of_thought, "Chain-of-Thought", "llm_cot", "parser_cot", cot_parser)
     ]
     
     results = {}
     
-    print(f"\n🔗 Lesson 2: Prompt Patterns")
-    print("=" * 40)
+    print(f"\n🔗 Lesson 2: Prompt Patterns (Three Separate Chains)")
+    print("=" * 55)
     print(f"Question: {question}\n")
     
-    for strategy_id, prompt, strategy_name in strategies:
-        # Trace prompt formatting
+    for strategy_id, prompt, strategy_name, llm_id, parser_id, parser in strategies:
+        print(f"📝 Executing {strategy_name} Strategy Chain:")
+        
+        # Step 1: Trace prompt formatting
         tracer.event("invoke_start", strategy_id, 
                     payload={"input": {"question": question}})
         
@@ -216,52 +278,54 @@ A:""")
         tracer.event("invoke_end", strategy_id,
                     payload={"resolved_prompt": resolved_prompt[:100] + "..."})
         
-        # Execute via LLM
-        tracer.event("invoke_start", "llm",
+        # Step 2: Execute via LLM
+        tracer.event("invoke_start", llm_id,
                     payload={"strategy": strategy_id, "input_preview": resolved_prompt[:100]})
         
-        response = llm.invoke(resolved_prompt)
-        results[strategy_id] = response
+        llm_response = llm.invoke(resolved_prompt)
         
-        tracer.event("invoke_end", "llm", 
-                    payload={"strategy": strategy_id, "output_preview": response[:100]})
+        tracer.event("invoke_end", llm_id, 
+                    payload={"strategy": strategy_id, "output_preview": llm_response[:100]})
         
-        print(f"📝 {strategy_name} Strategy:")
-        print(f"   Answer: {response[:150]}{'...' if len(response) > 150 else ''}")
+        # Add LLM artifacts
+        tracer.artifact(llm_id,
+                       input=resolved_prompt,
+                       output=llm_response,
+                       model_info={
+                           "name": llm.model,
+                           "provider": "groq",
+                           "temperature": llm.temperature
+                       },
+                       strategy=strategy_id)
+        
+        # Step 3: Parse the output
+        tracer.event("invoke_start", parser_id,
+                    payload={"input_preview": llm_response[:100]})
+        
+        final_output = parser.invoke(llm_response)
+        results[strategy_id] = final_output
+        
+        tracer.event("invoke_end", parser_id,
+                    payload={"output_preview": final_output[:100]})
+        
+        # Add parser artifacts
+        tracer.artifact(parser_id,
+                       input=llm_response,
+                       output=final_output,
+                       parser_type="string",
+                       strategy=strategy_id,
+                       processing_notes=f"Processed {strategy_name.lower()} strategy output")
+        
+        print(f"   ✓ {strategy_name} Answer: {final_output[:150]}{'...' if len(final_output) > 150 else ''}")
         print()
-    
-    # Trace final parsing
-    tracer.event("invoke_start", "parser",
-                payload={"strategies_processed": len(results)})
-    
-    combined_output = "\n\n".join([f"{k}: {v}" for k, v in results.items()])
-    final_output = parser.invoke(combined_output)
-    
-    tracer.event("invoke_end", "parser",
-                payload={"output_preview": "Processed all strategy outputs"})
-    
-    # Add comprehensive artifacts
-    tracer.artifact("llm",
-                   input=f"Processed {len(results)} different prompt strategies",
-                   output=combined_output,
-                   model_info={
-                       "name": llm.model,
-                       "provider": "groq",
-                       "temperature": llm.temperature
-                   },
-                   strategies_used=list(results.keys()),
-                   total_strategies=len(results))
-    
-    tracer.artifact("parser",
-                   input=combined_output,
-                   output=final_output,
-                   parser_type="string",
-                   strategies_count=len(results),
-                   processing_notes="Combined outputs from all prompt strategies")
     
     latency_ms = tracer.end()
     
     print(f"⏱️  Total latency: {latency_ms:.0f}ms")
+    print(f"🎯 Comparison Summary:")
+    for strategy_id, result in results.items():
+        strategy_name = strategy_id.replace('_', '-').title()
+        print(f"   • {strategy_name}: {len(result)} characters")
     
     # Step 7: Export GraphJSON and Mermaid
     graphjson = tracer.export(latency_ms)
@@ -285,8 +349,14 @@ A:""")
 def main() -> None:
     """CLI entry point for Lesson 2."""
     parser = argparse.ArgumentParser(
-        description="Lesson 2 — Prompt Patterns (Zero-Shot, Few-Shot, Chain-of-Thought)",
+        description="Lesson 2 — Prompt Patterns: Three Parallel Chains (Zero-Shot, Few-Shot, Chain-of-Thought)",
         epilog="""
+This lesson creates three separate chains to compare prompting strategies:
+
+Chain 1: Zero-Shot → LLM → Parser  (Direct questioning)
+Chain 2: Few-Shot → LLM → Parser   (Example-driven)  
+Chain 3: CoT → LLM → Parser        (Step-by-step reasoning)
+
 Examples:
   python3 code.py --text "What is quantum computing?"
   python3 code.py --text "How do neural networks work?"
@@ -298,12 +368,13 @@ API usage:
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--text", type=str, default=None,
-                       help="Question to analyze with different prompt strategies (default: about machine learning)")
+                       help="Question to analyze with three different prompt strategies (default: about machine learning)")
     args = parser.parse_args()
     
     run(text=args.text)
     print("\n✅ Lesson complete! Check graph.json and graph.mmd files.")
-    print("💡 Next: Load the viewer or start the API to explore the visual comparison.")
+    print("💡 Next: Load the viewer or start the API to explore the three parallel chains.")
+    print("🎓 Educational benefit: Compare how each strategy processes the same question.")
 
 
 if __name__ == "__main__":

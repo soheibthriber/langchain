@@ -408,9 +408,42 @@ const App: React.FC = () => {
                   {selectedNode.data.artifacts.output && (
                     <div>
                       <span className="font-medium text-gray-600">Output:</span>
-                      <div className="ml-2 p-2 bg-green-50 rounded border text-xs">
-                        {selectedNode.data.artifacts.output}
-                      </div>
+                      {/* Check if this is lesson 2 with multiple strategies */}
+                      {selectedNode.data.artifacts.output.includes('zero_shot:') && 
+                       selectedNode.data.artifacts.output.includes('few_shot:') && 
+                       selectedNode.data.artifacts.output.includes('cot:') ? (
+                        <div className="ml-2 space-y-3">
+                          {selectedNode.data.artifacts.output.split('\n\n').map((section: string, index: number) => {
+                            if (section.trim().startsWith('zero_shot:')) {
+                              return (
+                                <div key={index} className="p-2 bg-red-50 rounded border border-red-200">
+                                  <div className="font-semibold text-red-700 text-xs mb-1">🎯 Zero-Shot Strategy</div>
+                                  <div className="text-xs text-gray-700">{section.replace('zero_shot:', '').trim()}</div>
+                                </div>
+                              );
+                            } else if (section.trim().startsWith('few_shot:')) {
+                              return (
+                                <div key={index} className="p-2 bg-blue-50 rounded border border-blue-200">
+                                  <div className="font-semibold text-blue-700 text-xs mb-1">📚 Few-Shot Strategy</div>
+                                  <div className="text-xs text-gray-700">{section.replace('few_shot:', '').trim()}</div>
+                                </div>
+                              );
+                            } else if (section.trim().startsWith('cot:')) {
+                              return (
+                                <div key={index} className="p-2 bg-amber-50 rounded border border-amber-200">
+                                  <div className="font-semibold text-amber-700 text-xs mb-1">🧠 Chain-of-Thought Strategy</div>
+                                  <div className="text-xs text-gray-700 whitespace-pre-wrap">{section.replace('cot:', '').trim()}</div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })}
+                        </div>
+                      ) : (
+                        <div className="ml-2 p-2 bg-green-50 rounded border text-xs">
+                          {selectedNode.data.artifacts.output}
+                        </div>
+                      )}
                     </div>
                   )}
                   {selectedNode.data.artifacts.model_info && (
