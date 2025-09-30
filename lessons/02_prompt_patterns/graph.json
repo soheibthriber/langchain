@@ -1,0 +1,344 @@
+{
+  "metadata": {
+    "version": "1.1",
+    "run_id": "2e3bd340-5729-4069-a37b-6077aee39020",
+    "created_at": "2025-09-30T08:11:05.982013Z",
+    "lesson_id": "02_prompt_patterns",
+    "tags": []
+  },
+  "nodes": [
+    {
+      "id": "zero_shot",
+      "label": "Zero-Shot Prompt",
+      "type": "promptTemplate",
+      "subType": null,
+      "tags": [
+        "prompt",
+        "zero-shot"
+      ],
+      "data": {
+        "strategy": "zero_shot",
+        "template": "Answer this question clearly and concisely: {question}",
+        "description": "Direct question without examples or guidance"
+      }
+    },
+    {
+      "id": "few_shot",
+      "label": "Few-Shot Prompt",
+      "type": "promptTemplate",
+      "subType": null,
+      "tags": [
+        "prompt",
+        "few-shot"
+      ],
+      "data": {
+        "strategy": "few_shot",
+        "template": "Examples of good answers:\nQ: What is artificial intelligence?\nA: Artificial intelligence (AI) is a field of computer science focused on creating systems that can perform tasks typically requiring human intelligence, such as learning, reasoning, and problem-solving.\n\nQ: What is deep learning?\nA: Deep learning is a subset of machine learning that uses neural networks with multiple layers to learn complex patterns in large amounts of data.\n\nQ: {question}\nA:",
+        "description": "Question with examples to demonstrate desired format"
+      }
+    },
+    {
+      "id": "cot",
+      "label": "Chain-of-Thought",
+      "type": "promptTemplate",
+      "subType": null,
+      "tags": [
+        "prompt",
+        "chain-of-thought"
+      ],
+      "data": {
+        "strategy": "chain_of_thought",
+        "template": "Think step by step to answer this question: {question}\n\nLet me break this down:",
+        "description": "Question encouraging step-by-step reasoning"
+      }
+    },
+    {
+      "id": "llm",
+      "label": "Groq:llama-3.1-8b-instant",
+      "type": "llm",
+      "subType": null,
+      "tags": [
+        "core",
+        "llm"
+      ],
+      "data": {
+        "model": "llama-3.1-8b-instant",
+        "temperature": 0,
+        "provider": "groq",
+        "description": "Language model processing all three strategies",
+        "model_type": "chat"
+      }
+    },
+    {
+      "id": "parser",
+      "label": "StrOutputParser",
+      "type": "parser",
+      "subType": null,
+      "tags": [
+        "core",
+        "output"
+      ],
+      "data": {
+        "parser_type": "string",
+        "description": "Ensures clean string output from all strategies"
+      }
+    }
+  ],
+  "ports": [],
+  "edges": [
+    {
+      "id": "zero_shot->llm",
+      "source": {
+        "nodeId": "zero_shot"
+      },
+      "target": {
+        "nodeId": "llm"
+      },
+      "label": "zero-shot strategy"
+    },
+    {
+      "id": "few_shot->llm",
+      "source": {
+        "nodeId": "few_shot"
+      },
+      "target": {
+        "nodeId": "llm"
+      },
+      "label": "few-shot strategy"
+    },
+    {
+      "id": "cot->llm",
+      "source": {
+        "nodeId": "cot"
+      },
+      "target": {
+        "nodeId": "llm"
+      },
+      "label": "chain-of-thought strategy"
+    },
+    {
+      "id": "llm->parser",
+      "source": {
+        "nodeId": "llm"
+      },
+      "target": {
+        "nodeId": "parser"
+      },
+      "label": "combined outputs"
+    }
+  ],
+  "groups": [
+    {
+      "id": "prompt_comparison",
+      "label": "Prompt Strategy Comparison",
+      "nodeIds": [
+        "zero_shot",
+        "few_shot",
+        "cot",
+        "llm",
+        "parser"
+      ],
+      "type": "chain",
+      "collapsed": false
+    }
+  ],
+  "run": {
+    "latency_ms": 1637,
+    "tokens_in": 0,
+    "tokens_out": 0,
+    "cost": null,
+    "errors": null
+  },
+  "events": [
+    {
+      "ts_ms": 0,
+      "kind": "invoke_start",
+      "nodeId": "zero_shot",
+      "edgeId": null,
+      "payload": {
+        "input": {
+          "question": "what is biochemestry"
+        }
+      }
+    },
+    {
+      "ts_ms": 0,
+      "kind": "invoke_end",
+      "nodeId": "zero_shot",
+      "edgeId": null,
+      "payload": {
+        "resolved_prompt": "Answer this question clearly and concisely: what is biochemestry..."
+      }
+    },
+    {
+      "ts_ms": 0,
+      "kind": "invoke_start",
+      "nodeId": "llm",
+      "edgeId": null,
+      "payload": {
+        "strategy": "zero_shot",
+        "input_preview": "Answer this question clearly and concisely: what is biochemestry"
+      }
+    },
+    {
+      "ts_ms": 339,
+      "kind": "invoke_end",
+      "nodeId": "llm",
+      "edgeId": null,
+      "payload": {
+        "strategy": "zero_shot",
+        "output_preview": "Biochemistry is the study of the chemical processes and compounds that occur within living organisms"
+      }
+    },
+    {
+      "ts_ms": 339,
+      "kind": "invoke_start",
+      "nodeId": "few_shot",
+      "edgeId": null,
+      "payload": {
+        "input": {
+          "question": "what is biochemestry"
+        }
+      }
+    },
+    {
+      "ts_ms": 339,
+      "kind": "invoke_end",
+      "nodeId": "few_shot",
+      "edgeId": null,
+      "payload": {
+        "resolved_prompt": "Examples of good answers:\nQ: What is artificial intelligence?\nA: Artificial intelligence (AI) is a f..."
+      }
+    },
+    {
+      "ts_ms": 339,
+      "kind": "invoke_start",
+      "nodeId": "llm",
+      "edgeId": null,
+      "payload": {
+        "strategy": "few_shot",
+        "input_preview": "Examples of good answers:\nQ: What is artificial intelligence?\nA: Artificial intelligence (AI) is a f"
+      }
+    },
+    {
+      "ts_ms": 614,
+      "kind": "invoke_end",
+      "nodeId": "llm",
+      "edgeId": null,
+      "payload": {
+        "strategy": "few_shot",
+        "output_preview": "A: Biochemistry is the study of the chemical processes and interactions that occur within living org"
+      }
+    },
+    {
+      "ts_ms": 614,
+      "kind": "invoke_start",
+      "nodeId": "cot",
+      "edgeId": null,
+      "payload": {
+        "input": {
+          "question": "what is biochemestry"
+        }
+      }
+    },
+    {
+      "ts_ms": 615,
+      "kind": "invoke_end",
+      "nodeId": "cot",
+      "edgeId": null,
+      "payload": {
+        "resolved_prompt": "Think step by step to answer this question: what is biochemestry\n\nLet me break this down:..."
+      }
+    },
+    {
+      "ts_ms": 615,
+      "kind": "invoke_start",
+      "nodeId": "llm",
+      "edgeId": null,
+      "payload": {
+        "strategy": "cot",
+        "input_preview": "Think step by step to answer this question: what is biochemestry\n\nLet me break this down:"
+      }
+    },
+    {
+      "ts_ms": 1637,
+      "kind": "invoke_end",
+      "nodeId": "llm",
+      "edgeId": null,
+      "payload": {
+        "strategy": "cot",
+        "output_preview": "I'd be happy to help you understand what biochemistry is by breaking it down step by step.\n\n**Step 1"
+      }
+    },
+    {
+      "ts_ms": 1637,
+      "kind": "invoke_start",
+      "nodeId": "parser",
+      "edgeId": null,
+      "payload": {
+        "strategies_processed": 3
+      }
+    },
+    {
+      "ts_ms": 1637,
+      "kind": "invoke_end",
+      "nodeId": "parser",
+      "edgeId": null,
+      "payload": {
+        "output_preview": "Processed all strategy outputs"
+      }
+    }
+  ],
+  "artifacts": {
+    "zero_shot": {
+      "template": "Answer this question clearly and concisely: {question}",
+      "input_variables": [
+        "question"
+      ],
+      "resolved_prompt": "Answer this question clearly and concisely: what is biochemestry",
+      "strategy_type": "zero_shot",
+      "user_input": "what is biochemestry"
+    },
+    "few_shot": {
+      "template": "Examples of good answers:\nQ: What is artificial intelligence?\nA: Artificial intelligence (AI) is a field of computer science focused on creating systems that can perform tasks typically requiring human intelligence, such as learning, reasoning, and problem-solving.\n\nQ: What is deep learning?\nA: Deep learning is a subset of machine learning that uses neural networks with multiple layers to learn complex patterns in large amounts of data.\n\nQ: {question}\nA:",
+      "input_variables": [
+        "question"
+      ],
+      "resolved_prompt": "Examples of good answers:\nQ: What is artificial intelligence?\nA: Artificial intelligence (AI) is a field of computer science focused on creating systems that can perform tasks typically requiring human intelligence, such as learning, reasoning, and problem-solving.\n\nQ: What is deep learning?\nA: Deep learning is a subset of machine learning that uses neural networks with multiple layers to learn complex patterns in large amounts of data.\n\nQ: what is biochemestry\nA:",
+      "strategy_type": "few_shot",
+      "user_input": "what is biochemestry"
+    },
+    "cot": {
+      "template": "Think step by step to answer this question: {question}\n\nLet me break this down:",
+      "input_variables": [
+        "question"
+      ],
+      "resolved_prompt": "Think step by step to answer this question: what is biochemestry\n\nLet me break this down:",
+      "strategy_type": "cot",
+      "user_input": "what is biochemestry"
+    },
+    "llm": {
+      "input": "Processed 3 different prompt strategies",
+      "output": "zero_shot: Biochemistry is the study of the chemical processes and compounds that occur within living organisms, such as cells, tissues, and organisms. It combines principles from chemistry and biology to understand how biological systems function, including the structure and function of biomolecules like proteins, carbohydrates, lipids, and nucleic acids.\n\nfew_shot: A: Biochemistry is the study of the chemical processes and interactions that occur within living organisms, including the structure and function of biomolecules such as DNA, proteins, and carbohydrates. It combines principles from chemistry and biology to understand the intricate mechanisms underlying life at the molecular level.\n\ncot: I'd be happy to help you understand what biochemistry is by breaking it down step by step.\n\n**Step 1: Breaking down the term \"Biochemistry\"**\n\n- \"Bio\" comes from the Greek word \"bios,\" which means life.\n- \"Chemistry\" comes from the Greek words \"chemia\" (alchemy) and \"chemos\" (change), which refers to the study of change in matter.\n\n**Step 2: Combining the meanings of \"Bio\" and \"Chemistry\"**\n\n- Combining the meanings, \"biochemistry\" could be understood as the study of the chemical changes and processes that occur in living organisms.\n\n**Step 3: Defining the scope of biochemistry**\n\n- Biochemistry is an interdisciplinary field that combines the principles of chemistry, biology, and physics to understand the chemical processes that occur in living organisms.\n- It involves the study of the chemical structures and functions of biomolecules, such as proteins, carbohydrates, lipids, and nucleic acids.\n\n**Step 4: Identifying the topics covered in biochemistry**\n\n- Biochemistry covers a wide range of topics, including:\n  - The structure and function of biomolecules (such as DNA, RNA, proteins, and enzymes)\n  - Metabolic pathways (such as glycolysis, the citric acid cycle, and the electron transport chain)\n  - Cell signaling and communication\n  - Gene expression and regulation\n  - Biochemical mechanisms underlying various diseases (such as cancer, diabetes, and neurological disorders)\n\n**Step 5: Understanding the importance of biochemistry**\n\n- Biochemistry is essential for understanding the mechanisms underlying various biological processes, such as growth and development, immune responses, and disease progression.\n- It has numerous applications in medicine, agriculture, and industries related to food, pharmaceuticals, and biotechnology.\n\nSo, to summarize: biochemistry is the study of the chemical changes and processes that occur in living organisms, encompassing the structure and function of biomolecules, metabolic pathways, and biochemical mechanisms underlying various biological processes.",
+      "model_info": {
+        "name": "llama-3.1-8b-instant",
+        "provider": "groq",
+        "temperature": 0
+      },
+      "strategies_used": [
+        "zero_shot",
+        "few_shot",
+        "cot"
+      ],
+      "total_strategies": 3
+    },
+    "parser": {
+      "input": "zero_shot: Biochemistry is the study of the chemical processes and compounds that occur within living organisms, such as cells, tissues, and organisms. It combines principles from chemistry and biology to understand how biological systems function, including the structure and function of biomolecules like proteins, carbohydrates, lipids, and nucleic acids.\n\nfew_shot: A: Biochemistry is the study of the chemical processes and interactions that occur within living organisms, including the structure and function of biomolecules such as DNA, proteins, and carbohydrates. It combines principles from chemistry and biology to understand the intricate mechanisms underlying life at the molecular level.\n\ncot: I'd be happy to help you understand what biochemistry is by breaking it down step by step.\n\n**Step 1: Breaking down the term \"Biochemistry\"**\n\n- \"Bio\" comes from the Greek word \"bios,\" which means life.\n- \"Chemistry\" comes from the Greek words \"chemia\" (alchemy) and \"chemos\" (change), which refers to the study of change in matter.\n\n**Step 2: Combining the meanings of \"Bio\" and \"Chemistry\"**\n\n- Combining the meanings, \"biochemistry\" could be understood as the study of the chemical changes and processes that occur in living organisms.\n\n**Step 3: Defining the scope of biochemistry**\n\n- Biochemistry is an interdisciplinary field that combines the principles of chemistry, biology, and physics to understand the chemical processes that occur in living organisms.\n- It involves the study of the chemical structures and functions of biomolecules, such as proteins, carbohydrates, lipids, and nucleic acids.\n\n**Step 4: Identifying the topics covered in biochemistry**\n\n- Biochemistry covers a wide range of topics, including:\n  - The structure and function of biomolecules (such as DNA, RNA, proteins, and enzymes)\n  - Metabolic pathways (such as glycolysis, the citric acid cycle, and the electron transport chain)\n  - Cell signaling and communication\n  - Gene expression and regulation\n  - Biochemical mechanisms underlying various diseases (such as cancer, diabetes, and neurological disorders)\n\n**Step 5: Understanding the importance of biochemistry**\n\n- Biochemistry is essential for understanding the mechanisms underlying various biological processes, such as growth and development, immune responses, and disease progression.\n- It has numerous applications in medicine, agriculture, and industries related to food, pharmaceuticals, and biotechnology.\n\nSo, to summarize: biochemistry is the study of the chemical changes and processes that occur in living organisms, encompassing the structure and function of biomolecules, metabolic pathways, and biochemical mechanisms underlying various biological processes.",
+      "output": "zero_shot: Biochemistry is the study of the chemical processes and compounds that occur within living organisms, such as cells, tissues, and organisms. It combines principles from chemistry and biology to understand how biological systems function, including the structure and function of biomolecules like proteins, carbohydrates, lipids, and nucleic acids.\n\nfew_shot: A: Biochemistry is the study of the chemical processes and interactions that occur within living organisms, including the structure and function of biomolecules such as DNA, proteins, and carbohydrates. It combines principles from chemistry and biology to understand the intricate mechanisms underlying life at the molecular level.\n\ncot: I'd be happy to help you understand what biochemistry is by breaking it down step by step.\n\n**Step 1: Breaking down the term \"Biochemistry\"**\n\n- \"Bio\" comes from the Greek word \"bios,\" which means life.\n- \"Chemistry\" comes from the Greek words \"chemia\" (alchemy) and \"chemos\" (change), which refers to the study of change in matter.\n\n**Step 2: Combining the meanings of \"Bio\" and \"Chemistry\"**\n\n- Combining the meanings, \"biochemistry\" could be understood as the study of the chemical changes and processes that occur in living organisms.\n\n**Step 3: Defining the scope of biochemistry**\n\n- Biochemistry is an interdisciplinary field that combines the principles of chemistry, biology, and physics to understand the chemical processes that occur in living organisms.\n- It involves the study of the chemical structures and functions of biomolecules, such as proteins, carbohydrates, lipids, and nucleic acids.\n\n**Step 4: Identifying the topics covered in biochemistry**\n\n- Biochemistry covers a wide range of topics, including:\n  - The structure and function of biomolecules (such as DNA, RNA, proteins, and enzymes)\n  - Metabolic pathways (such as glycolysis, the citric acid cycle, and the electron transport chain)\n  - Cell signaling and communication\n  - Gene expression and regulation\n  - Biochemical mechanisms underlying various diseases (such as cancer, diabetes, and neurological disorders)\n\n**Step 5: Understanding the importance of biochemistry**\n\n- Biochemistry is essential for understanding the mechanisms underlying various biological processes, such as growth and development, immune responses, and disease progression.\n- It has numerous applications in medicine, agriculture, and industries related to food, pharmaceuticals, and biotechnology.\n\nSo, to summarize: biochemistry is the study of the chemical changes and processes that occur in living organisms, encompassing the structure and function of biomolecules, metabolic pathways, and biochemical mechanisms underlying various biological processes.",
+      "parser_type": "string",
+      "strategies_count": 3,
+      "processing_notes": "Combined outputs from all prompt strategies"
+    }
+  },
+  "styles": {}
+}

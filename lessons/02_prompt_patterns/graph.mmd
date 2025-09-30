@@ -1,0 +1,10 @@
+flowchart LR
+  zero_shot[Zero-Shot Prompt]
+  few_shot[Few-Shot Prompt]
+  cot[Chain-of-Thought]
+  llm[Groq:llama-3.1-8b-instant]
+  parser[StrOutputParser]
+  zero_shot -->|zero-shot strategy| llm
+  few_shot -->|few-shot strategy| llm
+  cot -->|chain-of-thought strategy| llm
+  llm -->|combined outputs| parser

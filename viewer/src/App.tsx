@@ -24,6 +24,10 @@ const App: React.FC = () => {
   const PUBLIC_BASE: string = (import.meta as any).env?.BASE_URL || '/';
   const preferApi = isDev || (typeof API_BASE === 'string' && API_BASE.length > 0);
   const apiPrefix = API_BASE || '';
+  
+  // Lesson state
+  const [currentLesson, setCurrentLesson] = useState('01_hello_chain');
+  
   // Start empty; populate from API (Load Sample)
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -37,7 +41,7 @@ const App: React.FC = () => {
     try {
       // Prefer API in dev; fallback to static if unavailable
       const fetchApi = async () => {
-        const res = await fetch(`${apiPrefix}/api/runs/01_hello_chain/latest`);
+        const res = await fetch(`${apiPrefix}/api/runs/${currentLesson}/latest`);
         if (!res.ok) throw new Error(String(res.status));
         return res.json();
       };
@@ -188,7 +192,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.warn('Load sample failed:', error);
     }
-  }, [setNodes, setEdges, API_BASE, PUBLIC_BASE, preferApi, apiPrefix]);
+  }, [setNodes, setEdges, API_BASE, PUBLIC_BASE, preferApi, apiPrefix, currentLesson]);
 
   const runLesson = useCallback(async () => {
     try {
@@ -197,7 +201,7 @@ const App: React.FC = () => {
         await loadSampleData();
         return;
       }
-  const response = await fetch(`${apiPrefix}/api/run/01_hello_chain`, {
+        const response = await fetch(`${apiPrefix}/api/run/${currentLesson}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: 'Explain how neural networks learn from data' }),
@@ -281,7 +285,7 @@ const App: React.FC = () => {
       console.warn('Run lesson failed:', e);
       await loadSampleData();
     }
-  }, [setNodes, setEdges, API_BASE, apiPrefix, preferApi, loadSampleData]);
+  }, [setNodes, setEdges, API_BASE, apiPrefix, preferApi, loadSampleData, currentLesson]);
 
   return (
     <div className="w-full h-screen flex">
@@ -310,17 +314,31 @@ const App: React.FC = () => {
               <div className="text-sm text-gray-600 mb-2">
                 Professional node design system showcasing different LangChain component types
               </div>
+              
+              {/* Lesson Selector */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Select Lesson:</label>
+                <select
+                  value={currentLesson}
+                  onChange={(e) => setCurrentLesson(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="01_hello_chain">Lesson 1: Hello Chain</option>
+                  <option value="02_prompt_patterns">Lesson 2: Prompt Patterns</option>
+                </select>
+              </div>
+
               <button
                 onClick={loadSampleData}
                 className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
               >
-                📊 Load Sample (Lesson 1)
+                📊 Load Sample ({currentLesson === '01_hello_chain' ? 'Lesson 1' : 'Lesson 2'})
               </button>
               <button
                 onClick={runLesson}
                 className="w-full mt-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium text-sm"
               >
-                ▶️ Run Lesson (Groq)
+                ▶️ Run {currentLesson === '01_hello_chain' ? 'Lesson 1' : 'Lesson 2'} (Groq)
               </button>
               <div className="text-xs text-gray-500 pt-2 border-t">
                 {nodes.length} nodes • {edges.length} connections
